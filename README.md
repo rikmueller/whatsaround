@@ -27,6 +27,8 @@ Das Projekt ist ideal für Bikepacking‑Routen, Wanderwege, Outdoor‑Planung, 
 
 ---
 
+
+
 ## 📁 Projektstruktur
 osm_finder/
 ├── main.py
