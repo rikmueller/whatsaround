@@ -59,13 +59,12 @@ python3 main.py \
 
 **3. Tool automatically:**
 1. Loads your GPX track
-2. Divides it into segments (every ~3 km by default)
-3. Searches a 5 km radius around each segment for:
+2. Searches a 5 km radius around each segment for:
    - Campsites that allow tents (`tourism=camp_site` without `tents=no`)
    - Drinking water sources (`amenity=drinking_water`)
    - Shelters (`amenity=shelter`)
-4. Queries OpenStreetMap via Overpass API (combined into efficient batches)
-5. Calculates exact distances using geodesic measurements
+3. Queries OpenStreetMap via Overpass API (combined into efficient batches)
+4. Calculates exact distances using geodesic measurements
 
 **4. Open your results**
 
