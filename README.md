@@ -230,19 +230,13 @@ The following command line arguments can override settings from `config.yaml`:
 | `--project-name` | string | Project name | `--project-name MyTour` |
 | `--output-path` | string | Output directory | `--output-path ./results/` |
 | `--gpx-file` | string | Path to GPX file | `--gpx-file route.gpx` |
-| `--radius-km` | number | Search radius in km | `--radius-km 10` |
+| `--radius-km` | number | Search radius in km | `--radius-km 5` |
 | `--preset` | string | Preset name from presets.yaml (can be used multiple times) | `--preset camp_basic --preset drinking_water` |
 | `--include` | string | Add include filter key=value (can be used multiple times) | `--include amenity=toilets` |
 | `--exclude` | string | Add exclude filter key=value (can be used multiple times) | `--exclude fee=yes` |
 
 **Note:** When using `--preset`, `--include`, or `--exclude`, the default filters from `config.yaml` are **ignored** - only the CLI arguments are used.
 
-#### CLI Examples
-
-- `--gpx-file mytrack.gpx` overrides the input GPX file
-- `--include amenity=toilets` adds include filters
-- `--project-name MyProject` sets the output project name
-- `--radius-km 10` changes the search radius to 10 km
 
 ## Presets
 
