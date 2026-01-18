@@ -57,7 +57,7 @@ python3 main.py \
 - `--include amenity=shelter` - Also find emergency shelters
 - `--project-name` - Name your results (used for output file names)
 
-**3. Tool automatically:**
+**3. Tool automatically**
 1. Loads your GPX track
 2. Searches a 5 km radius around each segment for:
    - Campsites that allow tents (`tourism=camp_site` without `tents=no`)
@@ -66,20 +66,19 @@ python3 main.py \
 3. Queries OpenStreetMap via Overpass API (combined into efficient batches)
 4. Calculates exact distances using geodesic measurements
 
-**4. Open your results**
+**4. Output created**
 
 Two files are created in `./output/`:
 
-**Excel File** (`BikepackingTour2025_20250118_103041.xlsx`):
-```
-Name | Kilometers from start | Distance from track (km) | Matching Filter | Website | Phone | Opening hours
------|-----|-----|-----|-----|-----|-----
-Mountain View Campground | 12.5 | 0.8 | tourism=camp_site | www.mountain.com | +1-555-0123 | 24/7
-Spring Water Source | 18.3 | 1.2 | amenity=drinking_water | | | 
-Emergency Shelter #42 | 25.6 | 2.1 | amenity=shelter | | |
-```
+**Excel File**:
+| Name                     | Kilometers from start | Distance from track (km) | Matching Filter         | Website          | Phone        | Opening hours |
+|--------------------------|----------------------:|-------------------------:|-------------------------|------------------|--------------|---------------|
+| Mountain View Campground |                  12.5 |                      0.8 | tourism=camp_site       | www.mountain.com | +49-721-471108  | 24/7          |
+| Spring Water Source      |                  18.3 |                      1.2 | amenity=drinking_water |                  |              |               |
+| Emergency Shelter #42    |                  25.6 |                      2.1 | amenity=shelter        |                  |              |               |
 
-**Interactive Map** (`BikepackingTour2025_20250118_103041.html`):
+
+**Interactive Map**:
 - Your route shown as a blue line
 - Red markers = Campsites (Filter 1)
 - Orange markers = Drinking water (Filter 2)
@@ -87,7 +86,8 @@ Emergency Shelter #42 | 25.6 | 2.1 | amenity=shelter | | |
 - Click markers to see details
 - Use "Locate" button to see your current position
 
-**5. Plan your tour**
+**5. Plan your tour**:
+
 Use the Excel file to:
 - Identify daily stages (distance between campsites)
 - Note amenities at each location
