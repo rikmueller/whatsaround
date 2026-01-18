@@ -112,6 +112,9 @@ overpass:
 presets_file: "presets.yaml"
 ```
 
+**What this config does:**
+This example configuration searches for camping sites (excluding those without tent options) within 5 km of your GPX track. It generates an Excel file and interactive map, with markers color-coded by distance: green for locations within 2 km, orange for 2-5 km, and red for locations farther away. The map starts at zoom level 10 with a blue track line. The GPX file is expected at `./input/track.gpx`, Results are saved to `./output/`.
+
 ## Presets
 
 The file `presets.yaml` contains predefined filter profiles.

@@ -1,5 +1,5 @@
 from shapely.geometry import LineString, Point
-from pyproj import Transformer
+from pyproj import Transformer, Geod
 import pandas as pd
 
 
@@ -23,6 +23,9 @@ def filter_elements_and_build_rows(
     track_line = LineString(track_points_m)
     track_length_m_proj = track_line.length
     total_track_length_km = track_info["total_length_km"]
+
+    # Use geodesic calculations for accurate distance measurements
+    geod = Geod(ellps="WGS84")
 
     parsed_excludes = [parse_filter(f) for f in exclude_filters]
 
@@ -63,19 +66,42 @@ def filter_elements_and_build_rows(
 
         opening_hours = tags.get("opening_hours", "")
 
-        camp_point_m = Point(transformer.transform(lon2, lat2))
-        distance_m = camp_point_m.distance(track_line)
+        # Calculate minimum distance to any segment and position along track using geodesic distance
+        min_distance_m = float('inf')
+        cumulative_distance_km = 0
+        closest_position_km = 0
+        
+        for i in range(len(track_points) - 1):
+            p1_lon, p1_lat = track_points[i]
+            p2_lon, p2_lat = track_points[i + 1]
+            
+            # Distance from POI to start of segment
+            _, _, dist_to_p1 = geod.inv(lon2, lat2, p1_lon, p1_lat)
+            
+            # Distance from POI to end of segment
+            _, _, dist_to_p2 = geod.inv(lon2, lat2, p2_lon, p2_lat)
+            
+            # Distance of this segment
+            _, _, segment_length = geod.inv(p1_lon, p1_lat, p2_lon, p2_lat)
+            
+            # Find closest point on this segment
+            if dist_to_p1 < min_distance_m:
+                min_distance_m = dist_to_p1
+                closest_position_km = cumulative_distance_km
+            
+            if dist_to_p2 < min_distance_m:
+                min_distance_m = dist_to_p2
+                closest_position_km = cumulative_distance_km + segment_length / 1000
+            
+            cumulative_distance_km += segment_length / 1000
 
-        if distance_m > radius_km * 1000:
+        if min_distance_m > radius_km * 1000:
             continue
-
-        distance_along_track_m = track_line.project(camp_point_m)
-        nearest_km = (distance_along_track_m / track_length_m_proj) * total_track_length_km
 
         rows.append(
             {
-                "Kilometers from start": round(nearest_km, 2),
-                "Distance from track (km)": round(distance_m / 1000, 2),
+                "Kilometers from start": round(closest_position_km, 2),
+                "Distance from track (km)": round(min_distance_m / 1000, 2),
                 "Name": name,
                 "Website": website,
                 "Phone": phone,
