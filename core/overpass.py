@@ -5,7 +5,7 @@ import math
 
 def build_overpass_query(lon, lat, radius_km, include_filters):
     """
-    Baut eine Overpass-Query mit dynamischen Include-Filtern.
+    Build an Overpass query with dynamic include filters.
     """
     include_parts = []
     for inc in include_filters:
@@ -29,7 +29,7 @@ def build_overpass_query(lon, lat, radius_km, include_filters):
 
 def query_overpass_with_retries(query: str, overpass_cfg: dict):
     """
-    Führt eine Overpass-Abfrage mit mehreren Servern und Retries aus.
+    Execute an Overpass query with multiple servers and retries.
     """
     servers = overpass_cfg.get("servers", [])
     retries = overpass_cfg.get("retries", 3)
@@ -43,10 +43,10 @@ def query_overpass_with_retries(query: str, overpass_cfg: dict):
             except Exception:
                 pass
         wait = 2 * (attempt + 1)
-        print(f"⚠️ Overpass-Fehler – Retry in {wait}s")
+        print(f"⚠️ Overpass error – Retrying in {wait}s")
         time.sleep(wait)
 
-    print("❌ Overpass endgültig fehlgeschlagen.")
+    print("❌ Overpass permanently failed.")
     return {"elements": []}
 
 
@@ -59,7 +59,7 @@ def query_overpass_segmented(
     include_filters: list,
 ):
     """
-    Führt segmentierte Overpass-Abfragen entlang des Tracks aus.
+    Execute segmented Overpass queries along the track.
     """
     from shapely.geometry import LineString
     from pyproj import Transformer
@@ -78,14 +78,14 @@ def query_overpass_segmented(
         return lon, lat
 
     num_steps = math.ceil(total_track_length_km / step_km)
-    print(f"🔍 Starte {num_steps} segmentierte Overpass-Abfragen...")
+    print(f"🔍 Starting {num_steps} segmented Overpass queries...")
 
     from tqdm import tqdm
 
     all_elements = []
     seen_ids = set()
 
-    for step in tqdm(range(num_steps + 1), desc="⏳ Overpass-Abfragen laufen"):
+    for step in tqdm(range(num_steps + 1), desc="⏳ Overpass queries running"):
         km = step * step_km
         lon, lat = point_at_km(km)
 

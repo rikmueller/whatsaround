@@ -4,7 +4,7 @@ from pyproj import Geod
 
 def load_gpx_track(gpx_file: str):
     """
-    Lädt eine GPX-Datei und gibt eine Liste von (lon, lat)-Punkten zurück.
+    Load a GPX file and return a list of (lon, lat) points.
     """
     with open(gpx_file, "r", encoding="utf-8") as f:
         gpx = gpxpy.parse(f)
@@ -17,14 +17,14 @@ def load_gpx_track(gpx_file: str):
     ]
 
     if not track_points:
-        raise ValueError(f"Keine Trackpunkte in {gpx_file} gefunden.")
+        raise ValueError(f"No track points found in {gpx_file}.")
 
     return track_points
 
 
 def compute_track_metrics(track_points):
     """
-    Berechnet geodätische Streckenlänge und kumulative Distanzen.
+    Calculate geodetic track length and cumulative distances.
     """
     geod = Geod(ellps="WGS84")
 

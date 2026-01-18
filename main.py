@@ -11,16 +11,16 @@ from core.folium_map import build_folium_map
 
 
 def main():
-    # CLI-Argumente einlesen
+    # Read CLI arguments
     args = parse_cli_args()
 
-    # Konfiguration aus YAML + CLI mergen
+    # Merge configuration from YAML + CLI
     config = load_and_merge_config(args.config, args)
 
-    # Presets laden
+    # Load presets
     presets = load_presets(config.get("presets_file", "presets.yaml"))
 
-    # Presets auf include/exclude anwenden
+    # Apply presets to include/exclude
     include_filters, exclude_filters = apply_presets_to_filters(
         presets,
         config["search"]["include"],
@@ -30,11 +30,11 @@ def main():
         args.exclude,
     )
 
-    # GPX laden und Track vorbereiten
+    # Load GPX and prepare track
     track_points = load_gpx_track(config["input"]["gpx_file"])
     track_info = compute_track_metrics(track_points)
 
-    # Overpass-Abfragen entlang des Tracks
+    # Overpass queries along the track
     elements = query_overpass_segmented(
         track_points=track_points,
         track_info=track_info,
@@ -44,7 +44,7 @@ def main():
         include_filters=include_filters,
     )
 
-    # Elemente filtern und tabellarische Daten erzeugen
+    # Filter elements and generate tabular data
     rows, df = filter_elements_and_build_rows(
         elements=elements,
         track_points=track_points,
@@ -53,14 +53,14 @@ def main():
         exclude_filters=exclude_filters,
     )
 
-    # Excel exportieren
+    # Export to Excel
     excel_path = export_to_excel(
         df=df,
         output_path=config["project"]["output_path"],
         project_name=config["project"]["name"],
     )
 
-    # Folium-Karte erzeugen
+    # Generate Folium map
     html_path = build_folium_map(
         df=df,
         track_points=track_points,
@@ -69,14 +69,14 @@ def main():
         map_cfg=config["map"],
     )
 
-    print(f"✅ Fertig! {len(df)} Objekte gefunden.")
+    print(f"✅ Done! {len(df)} objects found.")
     print(f"📄 Excel: {excel_path}")
-    print(f"🗺️ Karte: {html_path}")
+    print(f"🗺️ Map: {html_path}")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n⛔ Abgebrochen durch Benutzer.")
+        print("\n⛔ Aborted by user.")
         sys.exit(1)

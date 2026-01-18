@@ -4,7 +4,7 @@ import yaml
 
 def load_yaml_config(path: str) -> dict:
     """
-    Lädt eine YAML-Konfigurationsdatei.
+    Load a YAML configuration file.
     """
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -12,8 +12,8 @@ def load_yaml_config(path: str) -> dict:
 
 def merge_cli_into_config(cfg: dict, args) -> dict:
     """
-    CLI-Argumente in die YAML-Konfiguration mergen.
-    Nur gesetzte CLI-Werte überschreiben YAML.
+    Merge CLI arguments into YAML configuration.
+    Only set CLI values override YAML.
     """
     if args.project_name:
         cfg["project"]["name"] = args.project_name
@@ -26,11 +26,11 @@ def merge_cli_into_config(cfg: dict, args) -> dict:
     if args.step_km is not None:
         cfg["search"]["step_km"] = args.step_km
 
-    # STEP_KM: falls None → 60% von radius_km
+    # STEP_KM: if None → 60% of radius_km
     if cfg["search"]["step_km"] is None:
         cfg["search"]["step_km"] = cfg["search"]["radius_km"] * 0.6
 
-    # Output-Pfad normalisieren
+    # Normalize output path
     cfg["project"]["output_path"] = os.path.abspath(cfg["project"]["output_path"])
 
     return cfg
@@ -38,7 +38,7 @@ def merge_cli_into_config(cfg: dict, args) -> dict:
 
 def load_and_merge_config(config_path: str, args) -> dict:
     """
-    Lädt die YAML-Konfiguration und mergen CLI-Overrides hinein.
+    Load YAML configuration and merge CLI overrides into it.
     """
     cfg = load_yaml_config(config_path)
     cfg = merge_cli_into_config(cfg, args)

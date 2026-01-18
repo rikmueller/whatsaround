@@ -4,7 +4,7 @@ import folium
 
 def build_folium_map(df, track_points, output_path: str, project_name: str, map_cfg: dict) -> str:
     """
-    Erzeugt eine Folium-Karte mit Track und Markern.
+    Generate a Folium map with track and markers.
     """
     os.makedirs(output_path, exist_ok=True)
     html_path = os.path.join(output_path, f"{project_name}.html")
@@ -16,7 +16,7 @@ def build_folium_map(df, track_points, output_path: str, project_name: str, map_
         zoom_start=map_cfg.get("zoom_start", 10),
     )
 
-    # Track-Linie
+    # Track line
     folium.PolyLine(
         [(lat, lon) for lon, lat in track_points],
         color=map_cfg.get("track_color", "blue"),
@@ -33,10 +33,10 @@ def build_folium_map(df, track_points, output_path: str, project_name: str, map_
         popup_html = f"""
         <b>{row['Name']}</b><br>
         <b>km:</b> {row['Streckenkilometer (km)']}<br>
-        <b>Entfernung:</b> {row['Entfernung zum Track (km)']} km<br>
-        <b>Webseite:</b> <a href="{row['Webseite']}" target="_blank">{row['Webseite']}</a><br>
-        <b>Telefon:</b> {row['Telefon']}<br>
-        <b>Öffnungszeiten:</b> {row['Öffnungszeiten']}
+        <b>Distance:</b> {row['Entfernung zum Track (km)']} km<br>
+        <b>Website:</b> <a href="{row['Webseite']}" target="_blank">{row['Webseite']}</a><br>
+        <b>Phone:</b> {row['Telefon']}<br>
+        <b>Opening hours:</b> {row['Öffnungszeiten']}
         """
 
         dist = row["Entfernung zum Track (km)"]

@@ -16,7 +16,7 @@ def filter_elements_and_build_rows(
     exclude_filters: list,
 ):
     """
-    Wendet Ausschlussfilter an, berechnet Distanz zum Track und baut DataFrame.
+    Apply exclusion filters, calculate distance to track, and build DataFrame.
     """
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     track_points_m = [transformer.transform(*p) for p in track_points]
@@ -36,7 +36,7 @@ def filter_elements_and_build_rows(
 
         tags = el.get("tags", {})
 
-        # Ausschlussfilter
+        # Exclusion filters
         exclude_hit = False
         for key, value in parsed_excludes:
             if tags.get(key) == value:
@@ -45,7 +45,7 @@ def filter_elements_and_build_rows(
         if exclude_hit:
             continue
 
-        name = tags.get("name", "Unbenannt")
+        name = tags.get("name", "Unnamed")
 
         website = (
             tags.get("website")

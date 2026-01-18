@@ -3,7 +3,7 @@ import yaml
 
 def load_presets(path: str) -> dict:
     """
-    Lädt presets.yaml und gibt ein Dict zurück.
+    Load presets.yaml and return a dictionary.
     """
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -12,15 +12,15 @@ def load_presets(path: str) -> dict:
 
 def validate_filter_syntax(filter_str: str):
     """
-    Validiert, dass ein Filter die Form key=value hat.
+    Validate that a filter has the form key=value.
     """
     if "=" not in filter_str:
-        raise ValueError(f"Ungültiger Filter (erwartet key=value): {filter_str}")
+        raise ValueError(f"Invalid filter (expected key=value): {filter_str}")
     key, value = filter_str.split("=", 1)
     key = key.strip()
     value = value.strip()
     if not key or not value:
-        raise ValueError(f"Ungültiger Filter (leerer key oder value): {filter_str}")
+        raise ValueError(f"Invalid filter (empty key or value): {filter_str}")
     return key, value
 
 
@@ -33,31 +33,31 @@ def apply_presets_to_filters(
     cli_exclude: list | None,
 ):
     """
-    Kombiniert:
-    - Basis-Filter aus config.yaml
-    - Presets aus presets.yaml
-    - zusätzliche CLI-Filter
-    und validiert die Syntax.
+    Combine:
+    - Base filters from config.yaml
+    - Presets from presets.yaml
+    - Additional CLI filters
+    and validate the syntax.
     """
     include = list(base_include or [])
     exclude = list(base_exclude or [])
 
-    # Presets anwenden
+    # Apply presets
     if preset_names:
         for name in preset_names:
             if name not in presets:
-                raise ValueError(f"Preset '{name}' nicht in presets.yaml gefunden.")
+                raise ValueError(f"Preset '{name}' not found in presets.yaml.")
             p = presets[name]
             include.extend(p.get("include", []))
             exclude.extend(p.get("exclude", []))
 
-    # CLI-Filter hinzufügen
+    # Add CLI filters
     if cli_include:
         include.extend(cli_include)
     if cli_exclude:
         exclude.extend(cli_exclude)
 
-    # Duplikate entfernen
+    # Remove duplicates
     include = list(dict.fromkeys(include))
     exclude = list(dict.fromkeys(exclude))
 

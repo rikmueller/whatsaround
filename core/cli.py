@@ -3,62 +3,62 @@ import argparse
 
 def parse_cli_args():
     """
-    CLI-Argumente definieren und einlesen.
-    YAML-Config kann überschrieben/ergänzt werden.
+    Define and parse CLI arguments.
+    YAML config can be overridden/supplemented.
     """
     parser = argparse.ArgumentParser(
-        description="Finde OSM-Objekte entlang eines GPX-Tracks (Overpass, Excel, Folium)."
+        description="Find OSM objects along a GPX track (Overpass, Excel, Folium)."
     )
 
     parser.add_argument(
         "--config",
         type=str,
         default="config.yaml",
-        help="Pfad zur YAML-Konfigurationsdatei (Default: config.yaml)",
+        help="Path to YAML configuration file (Default: config.yaml)",
     )
 
     parser.add_argument(
         "--project-name",
         type=str,
-        help="Projektname, überschreibt project.name aus config.yaml",
+        help="Project name, overrides project.name from config.yaml",
     )
 
     parser.add_argument(
         "--output-path",
         type=str,
-        help="Output-Pfad, überschreibt project.output_path aus config.yaml",
+        help="Output path, overrides project.output_path from config.yaml",
     )
 
     parser.add_argument(
         "--gpx-file",
         type=str,
-        help="GPX-Datei, überschreibt input.gpx_file aus config.yaml",
+        help="GPX file, overrides input.gpx_file from config.yaml",
     )
 
     parser.add_argument(
         "--radius-km",
         type=float,
-        help="Suchradius in km, überschreibt search.radius_km",
+        help="Search radius in km, overrides search.radius_km",
     )
 
     parser.add_argument(
         "--step-km",
         type=float,
-        help="Abstand der Overpass-Abfragen in km, überschreibt search.step_km",
+        help="Distance of Overpass queries in km, overrides search.step_km",
     )
 
     parser.add_argument(
         "--include",
         action="append",
         default=None,
-        help="Zusätzlicher Include-Filter (key=value). Mehrfach nutzbar.",
+        help="Additional include filter (key=value). Can be used multiple times.",
     )
 
     parser.add_argument(
         "--exclude",
         action="append",
         default=None,
-        help="Zusätzlicher Exclude-Filter (key=value). Mehrfach nutzbar.",
+        help="Additional exclude filter (key=value). Can be used multiple times.",
     )
 
     parser.add_argument(
@@ -66,7 +66,7 @@ def parse_cli_args():
         dest="presets",
         action="append",
         default=None,
-        help="Name eines Presets aus presets.yaml. Mehrfach nutzbar.",
+        help="Name of a preset from presets.yaml. Can be used multiple times.",
     )
 
     return parser.parse_args()

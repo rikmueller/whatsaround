@@ -12,7 +12,6 @@ It combines GPX processing, Overpass API queries, flexible OSM filters, Excel ex
 - Export all results to Excel
 - Generate an interactive Folium map with track and markers
 - Fully configurable through YAML and command line arguments
-- Modular codebase for easy extension
 
 ## Installation
 ### Clone the repository
@@ -39,7 +38,7 @@ All default settings are stored in `config.yaml`.
 
 ```yaml
 project:
-  name: output
+  name: MyProject
   output_path: ./
 
 input:
