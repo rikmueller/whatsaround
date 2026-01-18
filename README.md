@@ -25,17 +25,17 @@ It's recommended to use a Python virtual environment to avoid conflicts with sys
 
 **On Linux/macOS:**
 ```bash
-python3 -m venv osm_finder
-source osm_finder/bin/activate
+python3 -m venv venv_osm_finder
+source venv_osm_finder/bin/activate
 ```
 
 **On Windows:**
 ```bash
-python -m venv osm_finder
-osm_finder\Scripts\activate
+python -m venv venv_osm_finder
+venv_osm_finder\Scripts\activate
 ```
 
-Your prompt should now show `(osm_finder)` at the beginning, indicating the virtual environment is active.
+Your prompt should now show `(venv_osm_finder)` at the beginning, indicating the virtual environment is active.
 
 ### Install dependencies
 ```bash
@@ -62,7 +62,7 @@ project:
 
 input:
   # Path to the GPX file containing the track to analyze
-  gpx_file: "track.gpx"
+  gpx_file: "./input/track.gpx"
 
 search:
   # Search radius in kilometers around each track segment

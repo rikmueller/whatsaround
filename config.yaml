@@ -6,7 +6,7 @@ project:
 
 input:
   # Path to the GPX file containing the track to analyze
-  gpx_file: "track.gpx"
+  gpx_file: "./input/track.gpx"
 
 search:
   # Search radius in kilometers around each track segment
