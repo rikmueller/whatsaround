@@ -3,17 +3,26 @@ import requests
 import math
 
 
-def build_overpass_query(lon, lat, radius_km, include_filters):
+def build_overpass_query_batch(points, radius_km, include_filters):
     """
-    Build an Overpass query with dynamic include filters.
+    Build an Overpass query with multiple circle searches batched together.
+    
+    Args:
+        points: List of (lon, lat) tuples for query centers
+        radius_km: Search radius in kilometers
+        include_filters: List of OSM tag filters (e.g., ["tourism=camp_site"])
+    
+    Returns:
+        Overpass QL query string
     """
     include_parts = []
     for inc in include_filters:
         key, value = inc.split("=", 1)
-        for obj_type in ("node", "way", "relation"):
-            include_parts.append(
-                f'{obj_type}["{key}"="{value}"](around:{radius_km * 1000},{lat},{lon});'
-            )
+        for lon, lat in points:
+            for obj_type in ("node", "way", "relation"):
+                include_parts.append(
+                    f'{obj_type}["{key}"="{value}"](around:{radius_km * 1000},{lat},{lon});'
+                )
 
     include_block = "\n      ".join(include_parts)
 
@@ -25,6 +34,14 @@ def build_overpass_query(lon, lat, radius_km, include_filters):
     out center tags;
     """
     return query
+
+
+def build_overpass_query(lon, lat, radius_km, include_filters):
+    """
+    Build an Overpass query with dynamic include filters (single point).
+    Deprecated: Use build_overpass_query_batch for better performance.
+    """
+    return build_overpass_query_batch([(lon, lat)], radius_km, include_filters)
 
 
 def query_overpass_with_retries(query: str, overpass_cfg: dict):
@@ -59,10 +76,14 @@ def query_overpass_segmented(
     include_filters: list,
 ):
     """
-    Execute segmented Overpass queries along the track.
+    Execute batched Overpass queries along the track.
+    
+    Queries are batched to reduce API calls: multiple search circles are
+    combined into single requests based on batch_km configuration.
     """
     from shapely.geometry import LineString
     from pyproj import Transformer
+    from tqdm import tqdm
 
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     track_points_m = [transformer.transform(*p) for p in track_points]
@@ -77,19 +98,31 @@ def query_overpass_segmented(
         lon, lat = transformer.transform(x[0], y[0], direction="INVERSE")
         return lon, lat
 
+    # Calculate all query points along the track
     num_steps = math.ceil(total_track_length_km / step_km)
-    print(f"🔍 Starting {num_steps} segmented Overpass queries...")
+    query_points = []
+    for step in range(num_steps + 1):
+        km = min(step * step_km, total_track_length_km)
+        lon, lat = point_at_km(km)
+        query_points.append((lon, lat))
 
-    from tqdm import tqdm
+    # Calculate batch size based on batch_km configuration
+    batch_km = overpass_cfg.get("batch_km", 50)  # Default 50km per batch
+    points_per_batch = max(1, int(batch_km / step_km))
+    
+    # Split query points into batches
+    batches = []
+    for i in range(0, len(query_points), points_per_batch):
+        batches.append(query_points[i:i + points_per_batch])
+
+    print(f"🔍 Querying {total_track_length_km:.1f}km track with {len(batches)} batched Overpass calls")
+    print(f"   ({len(query_points)} search points, ~{points_per_batch} points per batch)")
 
     all_elements = []
     seen_ids = set()
 
-    for step in tqdm(range(num_steps + 1), desc="⏳ Overpass queries running"):
-        km = step * step_km
-        lon, lat = point_at_km(km)
-
-        query = build_overpass_query(lon, lat, radius_km, include_filters)
+    for batch_idx, batch_points in enumerate(tqdm(batches, desc="⏳ Overpass queries")):
+        query = build_overpass_query_batch(batch_points, radius_km, include_filters)
         data = query_overpass_with_retries(query, overpass_cfg)
 
         for el in data.get("elements", []):

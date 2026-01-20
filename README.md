@@ -202,6 +202,11 @@ map:
 overpass:
   # Number of retry attempts for failed Overpass API requests
   retries: 5
+  # Distance in km of track to query per Overpass API call
+  # Batching reduces API calls: e.g., 100km route with batch_km=50 = 2 queries instead of 30+
+  # Lower values (30-40) for complex queries or dense areas, higher (60-80) for simple queries
+  # Recommended: 30-60km (default: 50km)
+  batch_km: 50
   # List of Overpass API endpoints (multiple servers for redundancy)
   servers:
     - "https://overpass-api.de/api/interpreter"
@@ -281,13 +286,14 @@ python3 main.py --preset camp_basic --include amenity=toilets --exclude fee=yes 
 
 ## Technical Notes
 
-- Overpass queries are executed in segments along the track
-- Distances are computed using WGS84 geodesic calculations (accurate across all latitudes)
-- Marker colors are assigned by filter rank: Filter1 uses `palette[0]`, Filter2 uses `palette[1]`, etc.
-- Filter matching allows you to track which search criteria found each object
-- Filters are validated to ensure `key=value` format
-- Duplicate results are removed
-- For a complete list of available OSM tags, visit [TagInfo](https://taginfo.openstreetmap.org/) or the [OSM Wiki](https://wiki.openstreetmap.org/wiki/Map_Features)
+- **Batched queries**: Multiple search points are combined into single Overpass API calls (configured via `batch_km`), reducing API load by 80-90%
+- **Segmented search**: Track is divided into segments for complete coverage along the route
+- **Geodesic distances**: All distances computed using WGS84 geodesic calculations (accurate across all latitudes)
+- **Color-coded markers**: Assigned by filter rank (Filter1→palette[0], Filter2→palette[1], etc.)
+- **Filter matching**: Track which search criteria found each object
+- **Validation**: Filters are validated to ensure `key=value` format
+- **Deduplication**: Duplicate results across batches are automatically removed
+- **OSM tags reference**: For available tags, visit [TagInfo](https://taginfo.openstreetmap.org/) or the [OSM Wiki](https://wiki.openstreetmap.org/wiki/Map_Features)
 
 ## Contributing
 

@@ -46,6 +46,11 @@ map:
 overpass:
   # Number of retry attempts for failed Overpass API requests
   retries: 5
+  # Distance in km of track to query per Overpass API call
+  # Batching reduces API calls: e.g., 100km route with batch_km=50 = 2 queries instead of 30+
+  # Lower values for complex queries or dense areas, higher for simple queries
+  # Recommended: 30-60km (default: 50km)
+  batch_km: 50
   # List of Overpass API endpoints (multiple servers for redundancy)
   servers:
     - "https://overpass.private.coffee/api/interpreter"
