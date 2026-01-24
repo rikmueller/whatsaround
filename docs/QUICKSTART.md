@@ -1,28 +1,34 @@
 # Quick Start Guide
 
-Get AlongGPX running in 5 minutes.
+Get AlongGPX running in 5 minutes. Choose your path: **CLI** (local machine) or **Docker** (web API).
+
+---
 
 ## Prerequisites
 
-**CLI:** Python 3.8+ (test: `python3 --version`)  
-**Docker:** Docker + Docker Compose (test: `docker --version`)
+| Mode | Requirement | Check |
+|------|-------------|-------|
+| CLI | Python 3.8+ | `python3 --version` |
+| Docker | Docker + Docker Compose | `docker --version` |
 
-## Option 1: CLI (Local)
+---
 
-### 1. Install
+## Path 1: CLI (Local Machine)
+
+### Step 1: Install
 ```bash
-cd /home/rik/AlongGPX
+cd AlongGPX
 pip install -r requirements-base.txt
 ```
 
-### 2. Run
+### Step 2: Run (First Time)
 ```bash
 python3 cli/main.py --preset camp_basic
 ```
 
-Your output files are in `data/output/`.
+Results are in `data/output/`.
 
-### 3. Customize
+### Step 3: Customize (Optional)
 ```bash
 # Different search radius
 python3 cli/main.py --radius-km 10 --preset camp_basic
@@ -32,7 +38,6 @@ python3 cli/main.py \
   --preset camp_basic \
   --include amenity=drinking_water \
   --include amenity=shelter \
-  --radius-km 5 \
   --project-name MyTrip
 ```
 
@@ -40,22 +45,21 @@ See `python3 cli/main.py --help` for all options.
 
 ---
 
-## Option 2: Docker (Web API)
+## Path 2: Docker (Web API)
 
-### 1. Start
+### Step 1: Start Container
 ```bash
 cd docker
 docker-compose up -d
 ```
 
-### 2. Check Health
+### Step 2: Verify
 ```bash
 curl http://localhost:5000/health
+# Response: {"status": "healthy", "service": "AlongGPX"}
 ```
 
-Response: `{"status": "healthy", "service": "AlongGPX"}`
-
-### 3. Process GPX
+### Step 3: Process GPX
 ```bash
 curl -F "file=@../data/input/track.gpx" \
      -F "project_name=MyTrip" \
@@ -63,79 +67,59 @@ curl -F "file=@../data/input/track.gpx" \
      http://localhost:5000/api/process
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "excel_file": "MyTrip_20260124_120000.xlsx",
-  "html_file": "MyTrip_20260124_120000.html",
-  "rows_count": 42,
-  "track_length_km": 125.5
-}
+Results are in `data/output/`.
+
+See [DOCKER.md](DOCKER.md) for full API reference and configuration.
+
+---
+
+## Available Presets
+
+Use `--preset` to quickly search for common POI types:
+
+```bash
+--preset camp_basic        # Campsites (tents allowed)
+--preset accommodation     # Hotels, B&Bs, guest houses
+--preset drinking_water    # Water sources
+--preset shelters          # Emergency shelters
 ```
 
-### 4. View Results
-Files are in `data/output/`.
+List all presets and create custom ones in [presets.yaml](../presets.yaml).
 
 ---
 
 ## Configuration
 
-### CLI: Via Environment (.env)
-Create `cli/.env`:
-```
-ALONGGPX_RADIUS_KM=8
-ALONGGPX_BATCH_KM=50
-ALONGGPX_TIMEZONE=Europe/Berlin
-```
+**For persistent settings**, edit [config.yaml](../config.yaml) in the repo root.
 
-### CLI: Via Command Line
-```bash
-python3 cli/main.py --radius-km 10 --preset drinking_water
-```
-
-### Docker: Via docker-compose.yml
-Edit `docker/docker-compose.yml` environment section:
-```yaml
-environment:
-  - ALONGGPX_RADIUS_KM=5
-  - ALONGGPX_BATCH_KM=50
-```
-
-### Both: Via config.yaml
-Edit `config.yaml` for permanent defaults.
-
----
-
-## Common Filters (Presets)
+**For one-time overrides**, use CLI arguments (see `--help`) or environment variables:
 
 ```bash
-python3 cli/main.py --preset camp_basic        # Campsites (tents allowed)
-python3 cli/main.py --preset accommodation     # Hotels, B&Bs, guest houses
-python3 cli/main.py --preset drinking_water    # Water sources
-python3 cli/main.py --preset shelters          # Emergency shelters
+export ALONGGPX_RADIUS_KM=8
+export ALONGGPX_TIMEZONE=Europe/Berlin
+python3 cli/main.py --preset camp_basic
 ```
 
-Create custom filters in `presets.yaml`.
+**Priority (high → low):** CLI args > env vars > config.yaml
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| CLI won't start | Run from repo root: `cd /home/rik/AlongGPX` |
-| No results | Check filter syntax: `key=value`, verify OSM data at [overpass-turbo.eu](https://overpass-turbo.eu/) |
-| Docker won't build | `docker system prune -f` then retry |
-| Port 5000 in use | Change in `docker/docker-compose.yml`: `ports: ["5001:5000"]` |
+| Issue | Fix |
+|-------|-----|
+| `No such file or directory: cli/main.py` | Run from repo root: `cd AlongGPX` |
+| No results found | Check filter syntax (`key=value`) and verify data at [overpass-turbo.eu](https://overpass-turbo.eu/) |
+| Docker won't start | `docker system prune -f` then retry |
+| Port 5000 in use | Edit `docker/docker-compose.yml`: `ports: ["5001:5000"]` |
 
-See [DOCKER.md](DOCKER.md) for Docker-specific issues.
+For Docker-specific issues, see [DOCKER.md](DOCKER.md#troubleshooting).
 
 ---
 
-## Next Steps
+## Next: Configure & Explore
 
-- Adjust `config.yaml` for your preferred defaults
-- Add custom GPX files to `data/input/`
-- Create custom filter presets in `presets.yaml`
-- Read [DOCKER.md](DOCKER.md) for web API details
+- **Edit defaults:** [config.yaml](../config.yaml)
+- **Add GPX files:** `data/input/` folder
+- **Create presets:** [presets.yaml](../presets.yaml)
+- **Web API?** → [DOCKER.md](DOCKER.md)
