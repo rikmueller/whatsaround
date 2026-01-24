@@ -19,7 +19,6 @@ Using a venv keeps your system Python clean.
 
 Linux/macOS:
 ```bash
-cd AlongGPX
 python3 -m venv venv
 source venv/bin/activate
 ```
