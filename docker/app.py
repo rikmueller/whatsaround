@@ -8,6 +8,9 @@ import os
 import sys
 import logging
 import tempfile
+import threading
+import uuid
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,6 +20,7 @@ from flask import Flask, request, jsonify, send_file
 
 from cli.main import run_pipeline
 from core.config import load_yaml_config, load_env_config, merge_env_into_config
+from core.presets import load_presets
 
 # Setup logging
 logging.basicConfig(
@@ -33,6 +37,85 @@ app.config['JSON_SORT_KEYS'] = False
 
 ALLOWED_EXTENSIONS = {'gpx'}
 
+# Job tracking system (thread-safe dict)
+job_registry = {}
+job_registry_lock = threading.Lock()
+
+
+def create_job(project_name: str):
+    """Create a new job tracking entry."""
+    job_id = str(uuid.uuid4())
+    with job_registry_lock:
+        job_registry[job_id] = {
+            'id': job_id,
+            'state': 'queued',  # queued, processing, completed, failed
+            'percent': 0,
+            'message': 'Queued for processing',
+            'project_name': project_name,
+            'created_at': datetime.now().isoformat(),
+            'excel_file': None,
+            'html_file': None,
+            'rows_count': None,
+            'track_length_km': None,
+            'error': None,
+        }
+    return job_id
+
+
+def update_job(job_id: str, **kwargs):
+    """Update job status."""
+    with job_registry_lock:
+        if job_id in job_registry:
+            job_registry[job_id].update(kwargs)
+
+
+def get_job(job_id: str):
+    """Get job status."""
+    with job_registry_lock:
+        return job_registry.get(job_id, None)
+
+
+def process_gpx_async(job_id: str, config: dict, temp_gpx_path: str, form_presets, form_includes, form_excludes):
+    """Run pipeline in background thread."""
+    try:
+        update_job(job_id, state='processing', percent=10, message='Starting pipeline...')
+        
+        # Run pipeline
+        result = run_pipeline(
+            config,
+            cli_presets=form_presets,
+            cli_include=form_includes,
+            cli_exclude=form_excludes,
+        )
+        
+        # Clean up temp GPX
+        try:
+            os.remove(temp_gpx_path)
+        except Exception as e:
+            logger.warning(f"Could not delete temp GPX: {e}")
+        
+        # Update job with success
+        update_job(
+            job_id,
+            state='completed',
+            percent=100,
+            message='Processing complete',
+            excel_file=os.path.basename(result['excel_path']),
+            html_file=os.path.basename(result['html_path']),
+            rows_count=result['rows_count'],
+            track_length_km=result['track_length_km'],
+        )
+        
+    except Exception as e:
+        logger.error(f"Processing failed for job {job_id}: {e}", exc_info=True)
+        update_job(
+            job_id,
+            state='failed',
+            percent=0,
+            message='Processing failed',
+            error=str(e),
+        )
+
 
 def allowed_file(filename: str) -> bool:
     """Check if file has allowed extension."""
@@ -48,21 +131,67 @@ def health_check():
     }), 200
 
 
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """
+    Return default configuration and available presets.
+    Used by frontend to populate dropdowns and defaults.
+    """
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
+        config = load_yaml_config(config_path)
+        
+        presets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'presets.yaml')
+        presets = load_presets(presets_path)
+        
+        return jsonify({
+            'defaults': {
+                'project_name': config['project']['name'],
+                'radius_km': config['search']['radius_km'],
+                'step_km': config['search']['step_km'],
+                'include': config['search']['include'],
+                'exclude': config['search']['exclude'],
+            },
+            'presets': list(presets.keys()),
+            'presets_detail': {name: p for name, p in presets.items()},
+        }), 200
+    except Exception as e:
+        logger.error(f"Config fetch failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/status/<job_id>', methods=['GET'])
+def get_status(job_id: str):
+    """
+    Get status of a processing job.
+    Returns: {id, state, percent, message, excel_file, html_file, rows_count, track_length_km, error}
+    """
+    try:
+        job = get_job(job_id)
+        if not job:
+            return jsonify({'error': 'Job not found'}), 404
+        return jsonify(job), 200
+    except Exception as e:
+        logger.error(f"Status fetch failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/process', methods=['POST'])
 def process_gpx():
     """
-    Process a GPX file and return results.
+    Start async processing of a GPX file.
     
     Expects:
     - POST multipart/form-data with:
       - 'file': GPX file
       - 'project_name' (optional): Project name for output
       - 'radius_km' (optional): Search radius in km
-      - 'include' (optional): Include filter(s) (comma-separated or repeated)
-      - 'exclude' (optional): Exclude filter(s) (comma-separated or repeated)
+      - 'include' (optional): Include filter(s) (repeated)
+      - 'exclude' (optional): Exclude filter(s) (repeated)
+      - 'preset' (optional): Preset name(s) (repeated)
     
     Returns:
-    - JSON with paths to Excel and HTML files
+    - JSON with job_id for polling via /api/status/<job_id>
     """
     try:
         # Validate file upload
@@ -119,29 +248,16 @@ def process_gpx():
         # Ensure output directory exists
         os.makedirs(config['project']['output_path'], exist_ok=True)
         
-        # Run pipeline with form overrides as CLI args
-        result = run_pipeline(
-            config,
-            cli_presets=form_presets,
-            cli_include=form_includes,
-            cli_exclude=form_excludes,
+        # Create job and start async processing
+        job_id = create_job(config['project']['name'])
+        thread = threading.Thread(
+            target=process_gpx_async,
+            args=(job_id, config, temp_gpx_path, form_presets, form_includes, form_excludes),
+            daemon=True,
         )
+        thread.start()
         
-        # Clean up temp GPX
-        try:
-            os.remove(temp_gpx_path)
-        except Exception as e:
-            logger.warning(f"Could not delete temp GPX: {e}")
-        
-        return jsonify({
-            'success': True,
-            'excel_file': os.path.basename(result['excel_path']),
-            'html_file': os.path.basename(result['html_path']),
-            'excel_path': result['excel_path'],
-            'html_path': result['html_path'],
-            'rows_count': result['rows_count'],
-            'track_length_km': result['track_length_km']
-        }), 200
+        return jsonify({'job_id': job_id, 'status_url': f'/api/status/{job_id}'}), 202
     
     except Exception as e:
         logger.error(f"Processing failed: {e}", exc_info=True)
@@ -152,9 +268,15 @@ def process_gpx():
 def download_excel(filename):
     """Download Excel file."""
     try:
+        # Resolve output directory using YAML + env overrides
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
-        output_dir = load_yaml_config(config_path)['project']['output_path']
+        cfg = load_yaml_config(config_path)
+        env_cfg = load_env_config()
+        cfg = merge_env_into_config(cfg, env_cfg)
+        output_dir = os.path.abspath(cfg['project']['output_path'])
+
         file_path = os.path.join(output_dir, secure_filename(filename))
+        logger.info(f"Download Excel requested: {file_path}")
         
         if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
@@ -169,14 +291,21 @@ def download_excel(filename):
 def download_html(filename):
     """Download HTML map file."""
     try:
+        # Resolve output directory using YAML + env overrides
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
-        output_dir = load_yaml_config(config_path)['project']['output_path']
+        cfg = load_yaml_config(config_path)
+        env_cfg = load_env_config()
+        cfg = merge_env_into_config(cfg, env_cfg)
+        output_dir = os.path.abspath(cfg['project']['output_path'])
+
         file_path = os.path.join(output_dir, secure_filename(filename))
+        logger.info(f"Download HTML requested: {file_path}")
         
         if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
         
-        return send_file(file_path, as_attachment=True, download_name=filename)
+        # Serve inline to allow opening map in a new tab
+        return send_file(file_path, as_attachment=False, download_name=filename)
     except Exception as e:
         logger.error(f"Download failed: {e}")
         return jsonify({'error': str(e)}), 500

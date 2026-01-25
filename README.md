@@ -13,7 +13,8 @@ It creates:
 Perfect for trip planning: bikepacking, hiking, road trips, or any adventure where you need to know what's nearby.
 
 ## 🚀 Get Started
-AlongGPX comes in two flavours:
+AlongGPX comes in three flavours:
+- **🌐 Web UI** (easiest!) → [docs/QUICKSTART-FRONTEND.md](docs/QUICKSTART-FRONTEND.md)
 - CLI (Python) → [docs/quickstart-cli.md](docs/quickstart-cli.md)
 - REST API (Docker) → [docs/quickstart-docker.md](docs/quickstart-docker.md)
 
@@ -47,7 +48,6 @@ AlongGPX/
 │   └── output/             # Generated results
 ├── config.yaml            # Shared configuration
 ├── presets.yaml           # Filter presets
-├── requirements-base.txt  # Core dependencies (CLI)
 └── README.md              # This file
 ```
 

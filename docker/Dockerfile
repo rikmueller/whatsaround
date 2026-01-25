@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from build context (repo root)
-COPY requirements-base.txt docker/requirements-web.txt ./
+# Copy web requirements only (deps are inlined)
+COPY docker/requirements-web.txt requirements-web.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements-web.txt

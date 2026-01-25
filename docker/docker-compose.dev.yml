@@ -1,0 +1,39 @@
+services:
+  # Flask backend API
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: alonggpx-app-dev
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_PORT=5000
+    volumes:
+      - ../cli:/app/cli
+      - ../core:/app/core
+      - ../docker/app.py:/app/docker/app.py
+      - ../config.yaml:/app/config.yaml:ro
+      - ../presets.yaml:/app/presets.yaml:ro
+      - ../data/input:/app/data/input:ro
+      - ../data/output:/app/data/output:rw
+    restart: unless-stopped
+    command: python docker/app.py
+
+  # React frontend (with hot reload)
+  frontend:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    container_name: alonggpx-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../web/src:/app/web/src
+      - ../web/index.html:/app/web/index.html
+      - ../web/vite.config.ts:/app/web/vite.config.ts
+    depends_on:
+      - app
+    restart: unless-stopped
+    command: npm run dev -- --host

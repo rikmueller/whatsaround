@@ -34,7 +34,7 @@ Your prompt should show `(venv)`.
 
 ## 2) Install Dependencies
 ```bash
-pip install -r requirements-base.txt
+pip install -r cli/requirements-cli.txt
 ```
 
 ## 3) First Run
