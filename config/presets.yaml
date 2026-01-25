@@ -1,5 +1,6 @@
 presets:
-  camp_basic:
+  camp_site_tent:
+    category: "Camping"
     info: "Find campsites that allow tent camping"
     include:
       - "tourism=camp_site"
@@ -8,6 +9,7 @@ presets:
       - "camp_site:tent=no"
 
   camp_and_caravan:
+    category: "Camping"
     info: "Find campsites and caravan sites including tent camping"
     include:
       - "tourism=camp_site"
@@ -16,21 +18,25 @@ presets:
       - "tents=no"
 
   wild_camping_spots:
+    category: "Camping"
     info: "Find designated wild camping spots"
     include:
       - "camp_site=wild"
 
   shelters:
+    category: "Amenities"
     info: "Find shelters for overnight stays or weather protection"
     include:
       - "amenity=shelter"
 
   hotel:
+    category: "Accommodation"
     info: "Find hotels along the route"
     include:
       - "tourism=hotel"
 
   accommodation:
+    category: "Accommodation"
     info: "Find all types of commercial accommodation (hotels, guest houses, B&Bs)"
     include:
       - "tourism=hotel"
@@ -38,6 +44,68 @@ presets:
       - "tourism=bed_and_breakfast"
 
   drinking_water:
+    category: "Amenities"
     info: "Find drinking water sources"
     include:
       - "amenity=drinking_water"
+
+  public_toilets:
+    category: "Amenities"
+    info: "Find public toilets and restrooms"
+    include:
+      - "amenity=toilets"
+
+  picnic_areas:
+    category: "Amenities"
+    info: "Find picnic areas and tables"
+    include:
+      - "tourism=picnic_site"
+      - "leisure=picnic_table"
+
+  restaurants:
+    category: "Food"
+    info: "Find restaurants, cafes, and dining options"
+    include:
+      - "amenity=restaurant"
+      - "amenity=cafe"
+
+  fast_food:
+    category: "Food"
+    info: "Find fast-food outlets and quick meal options"
+    include:
+      - "amenity=fast_food"
+
+  bars:
+    category: "Food"
+    info: "Find bars and pubs"
+    include:
+      - "amenity=bar"
+      - "amenity=pub"
+
+  cafes:
+    category: "Food"
+    info: "Find cafes and coffee shops"
+    include:
+      - "amenity=cafe"
+
+  supermarkets:
+    category: "Shops"
+    info: "Find supermarkets and grocery stores"
+    include:
+      - "shop=supermarket"
+      - "shop=grocery"
+      - "shop=convenience"
+      - "shop=kiosk"
+      - "shop=general"
+
+  bakeries:
+    category: "Shops"
+    info: "Find bakeries and bread shops"
+    include:
+      - "shop=bakery"
+
+  gas_stations:
+    category: "Shops"
+    info: "Find gas stations"
+    include:
+      - "amenity=fuel"

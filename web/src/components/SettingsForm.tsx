@@ -89,6 +89,41 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
     })
   }
 
+  // Group presets by category and sort by category name, then by preset name
+  const categoryOrder = ['Accommodation', 'Amenities', 'Camping', 'Food', 'Shops']
+  const groupedPresets = config.presets.reduce(
+    (acc, preset) => {
+      const category = config.presets_detail[preset]?.category || 'Other'
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push(preset)
+      return acc
+    },
+    {} as Record<string, string[]>
+  )
+
+  // Sort presets within each category by name
+  Object.keys(groupedPresets).forEach((category) => {
+    groupedPresets[category].sort()
+  })
+
+  // Sort categories by predefined order
+  const sortedGroupedPresets = categoryOrder
+    .filter((cat) => cat in groupedPresets)
+    .reduce((acc, cat) => {
+      acc[cat] = groupedPresets[cat]
+      return acc
+    }, {} as Record<string, string[]>)
+
+  // Add any categories not in the predefined order at the end
+  Object.keys(groupedPresets)
+    .filter((cat) => !categoryOrder.includes(cat))
+    .sort()
+    .forEach((cat) => {
+      sortedGroupedPresets[cat] = groupedPresets[cat]
+    })
+
   return (
     <div className="settings-form">
       <h2>⚙️ Settings</h2>
@@ -129,22 +164,32 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
 
       <div className="form-group">
         <label>Presets</label>
-        <div className="preset-grid">
-          {config.presets.map((preset) => (
-            <label key={preset} className="preset-chip">
-              <div className="preset-chip-header">
-                <input
-                  type="checkbox"
-                  checked={settings.presets.includes(preset)}
-                  onChange={() => handlePresetToggle(preset)}
-                  disabled={isProcessing}
-                />
-                <span className="preset-name">{preset}</span>
+        <div className="presets-container">
+          {Object.entries(sortedGroupedPresets).map(([category, presets]) => (
+            <div key={category} className="preset-category">
+              <h3 className="preset-category-title">{category}</h3>
+              <div className="preset-grid">
+                {presets.map((preset) => {
+                  const presetDetail = config.presets_detail[preset]
+                  const info = presetDetail?.info || ''
+
+                  return (
+                    <label key={preset} className="preset-chip">
+                      <div className="preset-chip-header">
+                        <input
+                          type="checkbox"
+                          checked={settings.presets.includes(preset)}
+                          onChange={() => handlePresetToggle(preset)}
+                          disabled={isProcessing}
+                        />
+                        <span className="preset-name">{preset}</span>
+                      </div>
+                      {info && <span className="preset-info">{info}</span>}
+                    </label>
+                  )
+                })}
               </div>
-              {config.presets_detail[preset]?.info && (
-                <span className="preset-info">{config.presets_detail[preset]?.info}</span>
-              )}
-            </label>
+            </div>
           ))}
         </div>
       </div>
