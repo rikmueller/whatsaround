@@ -78,13 +78,17 @@ def get_job(job_id: str):
 
 def process_gpx_async(job_id: str, config: dict, temp_gpx_path: str, form_presets, form_includes, form_excludes):
     """Run pipeline in background thread."""
+    def on_progress(percent: float, message: str):
+        update_job(job_id, state='processing', percent=int(percent), message=message)
+
     try:
-        update_job(job_id, state='processing', percent=10, message='Starting pipeline...')
+        update_job(job_id, state='processing', percent=5, message='Starting pipeline...')
         result = run_pipeline(
             config,
             cli_presets=form_presets,
             cli_include=form_includes,
             cli_exclude=form_excludes,
+            progress_callback=on_progress,
         )
         try:
             os.remove(temp_gpx_path)

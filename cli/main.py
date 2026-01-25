@@ -25,6 +25,7 @@ def run_pipeline(
     cli_presets: list | None = None,
     cli_include: list | None = None,
     cli_exclude: list | None = None,
+    progress_callback=None,
 ):
     """
     Core pipeline function that can be called from CLI or web app.
@@ -35,6 +36,13 @@ def run_pipeline(
     Returns:
         dict: Results containing paths to Excel and HTML files, dataframe, and metadata
     """
+    def report_progress(percent: float, message: str):
+        if progress_callback:
+            try:
+                progress_callback(percent, message)
+            except Exception:
+                logger.debug("Progress callback failed", exc_info=True)
+
     # Generate single timestamp for both Excel and HTML files, respecting configured timezone
     timezone_str = config.get("project", {}).get("timezone", "UTC")
     try:
@@ -43,6 +51,8 @@ def run_pipeline(
         logger.warning(f"Invalid timezone '{timezone_str}', falling back to UTC")
         tz = ZoneInfo("UTC")
     timestamp = datetime.now(tz).strftime("%Y%m%d_%H%M%S")
+
+    report_progress(5, "Preparing pipeline...")
     
     # Load presets
     presets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
@@ -60,10 +70,22 @@ def run_pipeline(
     )
 
     # Load GPX and prepare track
+    report_progress(10, "Loading GPX track...")
     track_points = load_gpx_track(config["input"]["gpx_file"])
     track_info = compute_track_metrics(track_points)
+    report_progress(
+        20,
+        f"Track loaded: {len(track_points)} points, {track_info['total_length_km']:.1f} km",
+    )
 
     # Overpass queries along the track
+    def overpass_progress(done: int, total: int):
+        base = 25
+        span = 45
+        fraction = done / total if total else 1
+        percent = base + fraction * span
+        report_progress(percent, f"Overpass queries {done}/{total}")
+
     elements = query_overpass_segmented(
         track_points=track_points,
         track_info=track_info,
@@ -71,7 +93,9 @@ def run_pipeline(
         step_km=config["search"]["step_km"],
         overpass_cfg=config["overpass"],
         include_filters=include_filters,
+        progress_cb=overpass_progress,
     )
+    report_progress(75, f"Fetched {len(elements)} raw results. Filtering...")
 
     # Filter elements and generate tabular data
     rows, df = filter_elements_and_build_rows(
@@ -82,6 +106,7 @@ def run_pipeline(
         exclude_filters=exclude_filters,
         include_filters=include_filters,
     )
+    report_progress(82, f"Filtered {len(rows)} results. Exporting...")
 
     # Export to Excel
     excel_path = export_to_excel(
@@ -90,6 +115,7 @@ def run_pipeline(
         project_name=config["project"]["name"],
         timestamp=timestamp,
     )
+    report_progress(90, "Excel exported. Building map...")
 
     # Generate Folium map
     html_path = build_folium_map(
@@ -101,6 +127,7 @@ def run_pipeline(
         include_filters=include_filters,
         timestamp=timestamp,
     )
+    report_progress(95, "Map generated. Finalizing...")
 
     return {
         "excel_path": excel_path,

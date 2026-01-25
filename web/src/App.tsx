@@ -121,6 +121,7 @@ function App() {
       setState((prev) => ({
         ...prev,
         stage: 'uploading',
+        status: null,
         error: null,
       }))
 
@@ -132,10 +133,19 @@ function App() {
         settings.excludes
       )
 
+      const initialStatus = await apiClient.getJobStatus(result.job_id)
+
       setState((prev) => ({
         ...prev,
-        stage: 'processing',
+        stage:
+          initialStatus.state === 'completed'
+            ? 'completed'
+            : initialStatus.state === 'failed'
+              ? 'error'
+              : 'processing',
         jobId: result.job_id,
+        status: initialStatus,
+        error: initialStatus.error || null,
       }))
     } catch (err) {
       setState((prev) => ({
@@ -196,6 +206,18 @@ function App() {
                     isProcessing={false}
                   />
                 )}
+              </div>
+            </div>
+          )}
+
+          {state.stage === 'uploading' && !state.status && (
+            <div className="processing-view">
+              <div className="loading-card">
+                <div className="spinner" aria-label="Uploading" />
+                <div>
+                  <p className="loading-label">Uploading GPX...</p>
+                  <p className="loading-sub">Preparing your request</p>
+                </div>
               </div>
             </div>
           )}
