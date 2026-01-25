@@ -3,6 +3,14 @@ import yaml
 from dotenv import load_dotenv
 
 
+def _parse_semicolon_list(value: str | None):
+    """Split a semicolon-delimited string into a trimmed list."""
+    if not value:
+        return None
+    parts = [item.strip() for item in value.split(";") if item.strip()]
+    return parts
+
+
 def load_yaml_config(path: str) -> dict:
     """
     Load a YAML configuration file.
@@ -25,9 +33,13 @@ def load_env_config() -> dict:
     - ALONGGPX_BATCH_KM
     - ALONGGPX_MAP_ZOOM_START
     - ALONGGPX_OVERPASS_RETRIES
+    - ALONGGPX_SEARCH_INCLUDE (semicolon-separated)
+    - ALONGGPX_SEARCH_EXCLUDE (semicolon-separated)
+    - ALONGGPX_HOSTNAME (for Vite allowedHosts / HMR)
     """
-    # Load .env file if present
-    load_dotenv()
+    # Load config/.env file if present
+    config_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
+    load_dotenv(config_env_path)
     
     env_cfg = {}
     
@@ -49,6 +61,14 @@ def load_env_config() -> dict:
         env_cfg["overpass_retries"] = int(os.getenv("ALONGGPX_OVERPASS_RETRIES"))
     if os.getenv("ALONGGPX_TIMEZONE"):
         env_cfg["timezone"] = os.getenv("ALONGGPX_TIMEZONE")
+    include_list = _parse_semicolon_list(os.getenv("ALONGGPX_SEARCH_INCLUDE"))
+    if include_list is not None:
+        env_cfg["search_include"] = include_list
+    exclude_list = _parse_semicolon_list(os.getenv("ALONGGPX_SEARCH_EXCLUDE"))
+    if exclude_list is not None:
+        env_cfg["search_exclude"] = exclude_list
+    if os.getenv("ALONGGPX_HOSTNAME"):
+        env_cfg["hostname"] = os.getenv("ALONGGPX_HOSTNAME")
     
     return env_cfg
 
@@ -102,6 +122,12 @@ def merge_env_into_config(cfg: dict, env_cfg: dict) -> dict:
         cfg["overpass"]["retries"] = env_cfg["overpass_retries"]
     if "timezone" in env_cfg:
         cfg["project"]["timezone"] = env_cfg["timezone"]
+    if "search_include" in env_cfg:
+        cfg["search"]["include"] = env_cfg["search_include"]
+    if "search_exclude" in env_cfg:
+        cfg["search"]["exclude"] = env_cfg["search_exclude"]
+    if "hostname" in env_cfg:
+        cfg["project"]["hostname"] = env_cfg["hostname"]
     
     return cfg
 

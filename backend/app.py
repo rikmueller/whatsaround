@@ -129,6 +129,8 @@ def get_config():
     try:
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
         config = load_yaml_config(config_path)
+        env_cfg = load_env_config()
+        config = merge_env_into_config(config, env_cfg)
         presets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'presets.yaml')
         presets = load_presets(presets_path)
         return jsonify({

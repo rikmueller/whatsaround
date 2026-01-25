@@ -1,32 +1,29 @@
 project:
   # Name used for output files (xlsx and html)
-  name: "MyProject"
+  name: null  # Set via ALONGGPX_PROJECT_NAME in config/.env
   # Directory where output files will be saved
   output_path: "./data/output/"
   # Timezone for file timestamps (e.g., "Europe/Berlin", "UTC", "America/New_York")
-  timezone: "Europe/Berlin"
+  timezone: null  # Set via ALONGGPX_TIMEZONE in config/.env
 
 input:
   # Path to the GPX file containing the track to analyze
-  gpx_file: "./data/input/track.gpx"
+  gpx_file: null  # Set via ALONGGPX_GPX_FILE in config/.env
 
 search:
   # Search radius in kilometers around each track segment
-  radius_km: 5
+  radius_km: null  # Set via ALONGGPX_RADIUS_KM in config/.env
   # Distance between Overpass query points along the track (in km)
   # Set to null to auto-calculate as 60% of radius_km (don´t change unless you know what you´re doing)
   step_km: null
   # OSM tags to search for (include filters)
-  #include:
-  #  - "tourism=camp_site"
+  include: []  # Set via ALONGGPX_SEARCH_INCLUDE (semicolon-separated) in config/.env
   # OSM tags to exclude from results (exclude filters)
-  #exclude:
-  #  - "tents=no"
-  #  - "camp_site:tent=no"
+  exclude: []  # Set via ALONGGPX_SEARCH_EXCLUDE (semicolon-separated) in config/.env
 
 map:
   # Initial zoom level for the Folium map (1-18)
-  zoom_start: 10
+  zoom_start: null  # Set via ALONGGPX_MAP_ZOOM_START in config/.env
   # Color of the track line on the map
   track_color: "blue"
   # Color palette for markers based on filter rank
