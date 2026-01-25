@@ -5,7 +5,7 @@
   box-shadow: var(--color-shadow);
   height: fit-content;
 
-  h2 {
+  :is(h2) {
     margin-bottom: var(--spacing-lg);
     font-size: var(--font-size-xl);
   }

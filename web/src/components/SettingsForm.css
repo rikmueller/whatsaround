@@ -4,7 +4,7 @@
   padding: var(--spacing-xl);
   box-shadow: var(--color-shadow);
 
-  h2 {
+  :is(h2) {
     margin-bottom: var(--spacing-lg);
     font-size: var(--font-size-xl);
   }
@@ -17,7 +17,7 @@
     margin-bottom: var(--spacing-xl);
   }
 
-  label {
+  :is(label) {
     display: block;
     margin-bottom: var(--spacing-sm);
     font-weight: 500;
@@ -116,7 +116,7 @@ input[type='number'] {
     border-color: var(--color-primary);
   }
 
-  input {
+  :is(input) {
     cursor: pointer;
   }
 }

@@ -175,7 +175,6 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
               <div className="preset-grid">
                 {presets.map((preset) => {
                   const presetDetail = config.presets_detail[preset]
-                  const info = presetDetail?.info || ''
                   const displayName = presetDetail?.name || preset
 
                   return (
@@ -189,7 +188,6 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
                         />
                         <span className="preset-name">{displayName}</span>
                       </div>
-                      {info && <span className="preset-info">{info}</span>}
                     </label>
                   )
                 })}

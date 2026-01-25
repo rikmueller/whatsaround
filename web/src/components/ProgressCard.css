@@ -19,7 +19,7 @@
   gap: var(--spacing-md);
   flex: 1;
 
-  h2 {
+  :is(h2) {
     margin: 0;
     font-size: var(--font-size-xl);
   }

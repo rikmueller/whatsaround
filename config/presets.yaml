@@ -1,5 +1,5 @@
 presets:
-  camp_site_tent:
+  camp_sites_tent:
     name: "Campsites (Tent)"
     category: "Camping"
     info: "Find campsites that allow tent camping"
@@ -10,14 +10,11 @@ presets:
       - "camp_site:tent=no"
 
   camp_and_caravan:
-    name: "Campsites & Caravan (tents allowed"
+    name: "Caravan Sites"
     category: "Camping"
-    info: "Find campsites and caravan sites including tent camping"
+    info: "Find caravan sites"
     include:
-      - "tourism=camp_site"
       - "tourism=caravan_site"
-    exclude:
-      - "tents=no"
 
   wild_camping_spots:
     name: "Wild Camping Spots"
@@ -33,19 +30,26 @@ presets:
     include:
       - "amenity=shelter"
 
-  hotel:
+  hotels:
     name: "Hotels"
     category: "Accommodation"
-    info: "Find hotels along the route"
+    info: "Find hotels"
     include:
       - "tourism=hotel"
+      - "tourism=motel"
 
-  accommodation:
-    name: "Accommodation (All)"
+  hostels:
+    name: "Hostels"
     category: "Accommodation"
-    info: "Find all types of commercial accommodation (hotels, guest houses, B&Bs)"
+    info: "Find hostels"
     include:
-      - "tourism=hotel"
+      - "tourism=hostel"   
+
+  guest_houses:
+    name: "Guest houses and B&Bs"
+    category: "Accommodation"
+    info: "Find guest houses and B&Bs"
+    include:
       - "tourism=guest_house"
       - "tourism=bed_and_breakfast"
 
