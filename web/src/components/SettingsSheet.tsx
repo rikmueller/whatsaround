@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useRef } from 'react'
+import { Sheet, MapPin } from 'lucide-react'
 import { JobStatus } from '../api'
 import { TileSource } from './InteractiveMap'
 import './SettingsSheet.css'
@@ -98,22 +99,18 @@ export default function SettingsSheet({
         </div>
 
         <div className="sheet-content">
-        <div className="sheet-header compact">
-          {status && (
-            <div className="status-chip small">
-              {status.state === 'processing' && 'Processing...'}
-              {status.state === 'completed' && 'Done'}
-              {status.state === 'failed' && 'Failed'}
-            </div>
-          )}
-        </div>
-
-        {error && <div className="alert">{error}</div>}
+        {status?.state === 'processing' ? (
+          <div className="alert alert-warning">
+            <strong>Processing:</strong> {status?.message || 'Working...'} — {status?.percent ?? 0}%
+          </div>
+        ) : error ? (
+          <div className="alert alert-error">{error}</div>
+        ) : null}
 
         <section className="sheet-section">
           <div className="section-head">
-            <h3>Upload GPX</h3>
-            {selectedFile && <span className="pill">{selectedFile.name}</span>}
+            <h3>GPX-File</h3>
+            {selectedFile && <span className="chip">{selectedFile.name}</span>}
           </div>
           <label className="upload-tile">
             <input ref={fileInputRef} type="file" accept=".gpx" onChange={handleFileChange} />
@@ -130,9 +127,8 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>General</h3>
-            <span className="pill">Radius: {settings.radiusKm} km</span>
           </div>
-          <div className="field">
+          <div className="field field-inline">
             <label htmlFor="projectName">Project name</label>
             <input
               id="projectName"
@@ -141,8 +137,8 @@ export default function SettingsSheet({
               placeholder="My adventure"
             />
           </div>
-          <div className="field">
-            <label htmlFor="radius">Search radius (km)</label>
+          <div className="field field-inline">
+            <label htmlFor="radius">Search radius</label>
             <div className="slider-row">
               <input
                 id="radius"
@@ -153,7 +149,7 @@ export default function SettingsSheet({
                 value={settings.radiusKm}
                 onChange={(e) => onSettingsChange({ radiusKm: Number(e.target.value) })}
               />
-              <span className="pill">{settings.radiusKm} km</span>
+              <span className="slider-value">{settings.radiusKm} km</span>
             </div>
           </div>
           
@@ -162,12 +158,14 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>Presets</h3>
-            <button className="ghost" onClick={onOpenPresetModal}>
-              +
-            </button>
+            <div className="section-actions">
+              {settings.presets.length === 0 && <span className="muted">No presets selected</span>}
+              <button className="ghost" onClick={onOpenPresetModal}>
+                +
+              </button>
+            </div>
           </div>
           <div className="chips">
-            {settings.presets.length === 0 && <span className="muted">No presets selected</span>}
             {settings.presets.map((p) => (
               <span key={p} className="chip">
                 {p}
@@ -179,12 +177,14 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>Include filters</h3>
-            <button className="ghost" onClick={onOpenIncludeModal}>
-              +
-            </button>
+            <div className="section-actions">
+              {settings.includes.length === 0 && <span className="muted">No include filters</span>}
+              <button className="ghost" onClick={onOpenIncludeModal}>
+                +
+              </button>
+            </div>
           </div>
           <div className="chips">
-            {settings.includes.length === 0 && <span className="muted">No include filters</span>}
             {settings.includes.map((f) => (
               <span key={f} className="chip">
                 {f}
@@ -196,12 +196,14 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>Exclude filters</h3>
-            <button className="ghost" onClick={onOpenExcludeModal}>
-              +
-            </button>
+            <div className="section-actions">
+              {settings.excludes.length === 0 && <span className="muted">No exclude filters</span>}
+              <button className="ghost" onClick={onOpenExcludeModal}>
+                +
+              </button>
+            </div>
           </div>
           <div className="chips">
-            {settings.excludes.length === 0 && <span className="muted">No exclude filters</span>}
             {settings.excludes.map((f) => (
               <span key={f} className="chip muted-chip">
                 {f}
@@ -213,42 +215,38 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>Downloads</h3>
-            <span className="muted">Available after processing</span>
-          </div>
-          <div className="download-row">
-            <a
-              className={`btn ${status?.excel_file ? 'btn-primary' : 'btn-disabled'}`}
-              href={status?.excel_file ? `/api/download/excel/${status.excel_file}` : undefined}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Excel
-            </a>
-            <a
-              className={`btn ${status?.html_file ? 'btn-secondary' : 'btn-disabled'}`}
-              href={status?.html_file ? `/api/download/html/${status.html_file}` : undefined}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Map (Folium)
-            </a>
+            {status?.excel_file || status?.html_file ? (
+              <div className="download-icons">
+                {status?.excel_file && (
+                  <a
+                    href={`/api/download/excel/${status.excel_file}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="download-icon"
+                    title="Download Excel"
+                  >
+                    <Sheet size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+                {status?.html_file && (
+                  <a
+                    href={`/api/download/html/${status.html_file}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="download-icon"
+                    title="Download Map"
+                  >
+                    <MapPin size={24} strokeWidth={1.5} />
+                  </a>
+                )}
+              </div>
+            ) : (
+              <span className="muted">Available after processing</span>
+            )}
           </div>
         </section>
 
         <div className="actions">
-          <div className="progress">
-            <div className="labels">
-              <span>{status?.message || 'Ready'}</span>
-              <span>{status ? `${status.percent}%` : ''}</span>
-            </div>
-            <div className="bar">
-              <div className="fill" style={{ width: `${status?.percent || 0}%` }} />
-            </div>
-            <div className="summary">
-              <span>Rows: {status?.rows_count ?? '—'}</span>
-              <span>Track: {formatDistance(status?.track_length_km)}</span>
-            </div>
-          </div>
           <div className="action-buttons">
             <button className="btn btn-secondary" onClick={onReset}>
               Reset

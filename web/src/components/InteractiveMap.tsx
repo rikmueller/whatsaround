@@ -51,8 +51,8 @@ function FitBounds({ track }: { track: [number, number][] }) {
   const map = useMap()
   useEffect(() => {
     if (track.length === 0) return
-    const latLngs = track.map(([lon, lat]) => [lat, lon])
-    const bounds = L.latLngBounds(latLngs)
+    const latLngs = track.map(([lon, lat]) => [lat, lon] as [number, number])
+    const bounds = L.latLngBounds(latLngs as L.LatLngExpression[])
     map.fitBounds(bounds, { padding: [24, 24] })
   }, [track, map])
   return null
@@ -116,14 +116,14 @@ export default function InteractiveMap({ track, pois, tileSource, tileOptions, o
   return (
     <div className="map-wrapper">
       <MapContainer
-        center={polylineCoords[0] || initialCenter}
+        center={(polylineCoords[0] || initialCenter) as L.LatLngExpression}
         zoom={10}
         className="map"
         zoomControl={true}
       >
         <TileLayer url={tileSource.url} attribution={tileSource.attribution} />
         {polylineCoords.length > 0 && (
-          <Polyline positions={polylineCoords} pathOptions={{ color: '#2563eb', weight: 3 }} />
+          <Polyline positions={polylineCoords as L.LatLngExpression[]} pathOptions={{ color: '#2563eb', weight: 3 }} />
         )}
         {pois.map((poi) => {
           const color = poi.matchingFilter ? filterColorMap[poi.matchingFilter] || DEFAULT_COLOR : DEFAULT_COLOR
