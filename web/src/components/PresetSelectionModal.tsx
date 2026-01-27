@@ -81,7 +81,7 @@ export default function PresetSelectionModal({ open, selected, presetsDetail, on
         />
       </div>
       <div className="preset-groups">
-        {Object.entries(filtered).map(([category, items]) => (
+        {Object.entries(filtered).sort(([a], [b]) => a.localeCompare(b)).map(([category, items]) => (
           <div key={category} className="preset-group">
             <div className="preset-cat">{category}</div>
             <div className="preset-list">
