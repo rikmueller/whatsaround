@@ -148,7 +148,13 @@ function FitBounds({ track, pois }: { track: [number, number][]; pois: MapPoi[] 
   }
 
   useEffect(() => {
-    // Fit only when a new track arrives
+    // Reset user interaction flag when data is cleared (reset case)
+    if (!signature && lastSigRef.current) {
+      userMovedRef.current = false
+      lastSigRef.current = ''
+    }
+    
+    // Fit only when a new track/POI data arrives
     if (signature && signature !== lastSigRef.current) {
       userMovedRef.current = false
       refit({ force: true })
@@ -213,6 +219,25 @@ function LocateButton() {
       <Crosshair size={18} />
     </button>
   )
+}
+
+function ScaleControl() {
+  const map = useMap()
+
+  useEffect(() => {
+    const scaleControl = L.control.scale({
+      position: 'bottomleft',
+      imperial: false,
+      metric: true,
+    })
+    scaleControl.addTo(map)
+
+    return () => {
+      scaleControl.remove()
+    }
+  }, [map])
+
+  return null
 }
 
 function TileSelector({ tileOptions, value, onChange }: { tileOptions: TileSource[]; value: string; onChange: (id: string) => void }) {
@@ -341,6 +366,7 @@ export default function InteractiveMap({ track, pois, tileSource, tileOptions, o
           )
         })}
         <FitBounds track={track} pois={pois} />
+        <ScaleControl />
         <LocateButton />
         <RecenterButton track={track} pois={pois} />
         <TileSelector tileOptions={tileOptions} value={tileSource.id} onChange={onTileChange} />

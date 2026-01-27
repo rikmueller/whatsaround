@@ -116,7 +116,21 @@ export default function SettingsSheet({
         <section className="sheet-section">
           <div className="section-head">
             <h3>GPX-Track</h3>
-            {selectedFile && <span className="chip">{selectedFile.name}</span>}
+            {selectedFile ? (
+              <span className="chip">
+                {selectedFile.name}
+                <button
+                  className="chip-delete"
+                  onClick={() => onFileSelected(null)}
+                  aria-label={`Remove ${selectedFile.name}`}
+                  title="Remove track"
+                >
+                  ×
+                </button>
+              </span>
+            ) : (
+              <span className="muted">No track uploaded</span>
+            )}
           </div>
           <label className="upload-tile">
             <input ref={fileInputRef} type="file" accept=".gpx" onChange={handleFileChange} />

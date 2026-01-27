@@ -15,6 +15,11 @@
   right: auto !important;
 }
 
+/* Position scale control above attribution */
+.leaflet-control-scale {
+  margin-bottom: 30px !important;
+}
+
 .locate-control,
 .recenter-control {
   position: absolute;

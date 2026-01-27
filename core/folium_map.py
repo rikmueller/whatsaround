@@ -212,5 +212,30 @@ def build_folium_map(
         collapsed=map_cfg.get("layer_control_collapsed", False),
     ).add_to(m)
 
+    # Add scale control
+    scale_script = Template("""
+    <script>
+        (function() {
+            var mapName = "$map_name";
+            var attempts = 0;
+            function attach() {
+                var map = window[mapName];
+                if (!map) {
+                    if (attempts++ < 50) return setTimeout(attach, 100);
+                    return;
+                }
+                
+                L.control.scale({
+                    position: 'bottomleft',
+                    imperial: false,
+                    metric: true
+                }).addTo(map);
+            }
+            attach();
+        })();
+    </script>
+    """)
+    m.get_root().html.add_child(folium.Element(scale_script.substitute(map_name=m.get_name())))
+
     m.save(html_path)
     return html_path

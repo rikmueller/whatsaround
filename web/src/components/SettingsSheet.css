@@ -140,7 +140,8 @@
   margin-bottom: 8px;
 }
 
-.section-head .muted {
+.section-head .muted,
+.section-head .chip {
   margin-left: auto;
 }
 
