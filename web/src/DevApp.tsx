@@ -52,9 +52,41 @@ function saveTilePreference(tileId: string) {
   }
 }
 
-type MapData = {
-  track: [number, number][]
-  pois: MapPoi[]
+/**
+ * Parse GPX file using browser's DOMParser to extract track coordinates
+ */
+async function parseGPXFile(file: File): Promise<[number, number][]> {
+  const text = await file.text()
+  const parser = new DOMParser()
+  const xmlDoc = parser.parseFromString(text, 'text/xml')
+  
+  // Check for XML parsing errors
+  const parserError = xmlDoc.querySelector('parsererror')
+  if (parserError) {
+    throw new Error('Invalid GPX file - malformed XML')
+  }
+  
+  // Extract all track points from all track segments
+  const trkpts = xmlDoc.querySelectorAll('trk trkseg trkpt')
+  
+  if (trkpts.length === 0) {
+    throw new Error('Invalid GPX file - no track points found')
+  }
+  
+  const trackPoints: [number, number][] = []
+  trkpts.forEach(pt => {
+    const lat = pt.getAttribute('lat')
+    const lon = pt.getAttribute('lon')
+    if (lat && lon) {
+      trackPoints.push([parseFloat(lon), parseFloat(lat)])
+    }
+  })
+  
+  if (trackPoints.length === 0) {
+    throw new Error('Invalid GPX file - no valid coordinates found')
+  }
+  
+  return trackPoints
 }
 
 type FilterModalMode = 'include' | 'exclude'
@@ -65,7 +97,8 @@ function DevApp() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [mapData, setMapData] = useState<MapData | null>(null)
+  const [trackData, setTrackData] = useState<[number, number][]>([])
+  const [poiData, setPoiData] = useState<MapPoi[]>([])
   const [sheetOpen, setSheetOpen] = useState(true)
   const [tileId, setTileId] = useState<string>(loadTilePreference())
 
@@ -85,14 +118,9 @@ function DevApp() {
     async (id: string) => {
       try {
         const data: GeoJsonResponse = await apiClient.getGeoJson(id)
-        const trackFeature = data.features.find(
-          (f) => f.geometry.type === 'LineString' && f.properties?.featureType === 'track'
-        )
         const poiFeatures = data.features.filter(
           (f) => f.geometry.type === 'Point' && f.properties?.featureType === 'poi'
         )
-        const track =
-          (trackFeature?.geometry.type === 'LineString' && trackFeature.geometry.coordinates) || []
         const pois: MapPoi[] = poiFeatures.map((f, idx) => ({
           id: `${f.properties.id || idx}`,
           name: f.properties.name || 'Unnamed',
@@ -105,9 +133,9 @@ function DevApp() {
           openingHours: f.properties.opening_hours || '',
           tags: f.properties.tags || '',
         }))
-        setMapData({ track, pois })
+        setPoiData(pois)
       } catch (err) {
-        setError(`Failed to load map data: ${err}`)
+        setError(`Failed to load POI data: ${err}`)
       }
     },
     [],
@@ -158,8 +186,23 @@ function DevApp() {
     [tileId]
   )
 
-  const handleFileSelected = (file: File | null) => {
+  const handleFileSelected = async (file: File | null) => {
     setUploadedFile(file)
+    if (!file) {
+      setTrackData([])
+      return
+    }
+    
+    // Parse GPX and display track immediately
+    try {
+      const trackPoints = await parseGPXFile(file)
+      setTrackData(trackPoints)
+      setError(null) // Clear any previous errors
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to parse GPX file - please check file format'
+      setError(message)
+      setTrackData([])
+    }
   }
 
   const handleSettingsChange = (changes: Partial<typeof settings>) => {
@@ -182,7 +225,7 @@ function DevApp() {
 
     try {
       setError(null)
-      setMapData(null)
+      setPoiData([]) // Clear only POIs, keep track visible
 
       const result = await apiClient.startProcessing(
         uploadedFile,
@@ -210,7 +253,8 @@ function DevApp() {
   const handleReset = () => {
     setJobId(null)
     setJobStatus(null)
-    setMapData(null)
+    setTrackData([])
+    setPoiData([])
     setUploadedFile(null)
     setError(null)
     setSheetOpen(true)
@@ -349,8 +393,8 @@ function DevApp() {
     <div className="dev-app">
       <BrandingHeader title="alongGPX" subtitle="Plan smarter along your track" />
       <InteractiveMap
-        track={mapData?.track || []}
-        pois={mapData?.pois || []}
+        track={trackData}
+        pois={poiData}
         tileSource={tileSource}
         tileOptions={TILE_SOURCES}
         onTileChange={setTileId}
