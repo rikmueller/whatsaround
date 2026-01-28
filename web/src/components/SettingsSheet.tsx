@@ -132,17 +132,38 @@ export default function SettingsSheet({
           </button>
         )}
 
-        {/* Mobile header bar with close button */}
+        {/* Mobile header bar with buttons and close */}
         <div className="sheet-mobile-header">
           <h2 className="sheet-mobile-title">Settings</h2>
-          <button
-            className="sheet-mobile-close"
-            onClick={onToggle}
-            aria-label="Close settings"
-            title="Close settings"
-          >
-            <X size={24} />
-          </button>
+          <div className="sheet-header-actions">
+            <button className="btn btn-secondary btn-compact" onClick={onReset}>
+              Reset
+            </button>
+            <button className="btn btn-primary btn-compact" onClick={onStart}>
+              {status?.state === 'processing' ? 'Processing...' : 'Process'}
+            </button>
+            <button
+              className="sheet-mobile-close"
+              onClick={onToggle}
+              aria-label="Close settings"
+              title="Close settings"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop header bar with buttons */}
+        <div className="sheet-desktop-header">
+          <h2 className="sheet-desktop-title">Settings</h2>
+          <div className="sheet-header-actions">
+            <button className="btn btn-secondary btn-compact" onClick={onReset}>
+              Reset
+            </button>
+            <button className="btn btn-primary btn-compact" onClick={onStart}>
+              {status?.state === 'processing' ? 'Processing...' : 'Process'}
+            </button>
+          </div>
         </div>
 
         {/* Mobile grabber - hidden but kept for desktop */}
@@ -158,17 +179,6 @@ export default function SettingsSheet({
         ) : error ? (
           <div className="alert alert-error" ref={errorRef}>{error}</div>
         ) : null}
-
-        <div className="actions">
-          <div className="action-buttons">
-            <button className="btn btn-secondary" onClick={onReset}>
-              Reset
-            </button>
-            <button className="btn btn-primary" onClick={onStart}>
-              {status?.state === 'processing' ? 'Processing...' : 'Process'}
-            </button>
-          </div>
-        </div>
 
         <section className="sheet-section">
           <div className="section-head">
