@@ -167,6 +167,24 @@ def build_folium_map(
         opacity=0.8,
     ).add_to(track_group)
 
+    # Add start marker
+    if track_points:
+        start_lon, start_lat = track_points[0]
+        folium.Marker(
+            location=[start_lat, start_lon],
+            popup=folium.Popup("<b>Start</b>", max_width=150),
+            icon=folium.Icon(color="green", icon="play", prefix="glyphicon"),
+        ).add_to(track_group)
+
+    # Add end marker
+    if track_points and len(track_points) > 1:
+        end_lon, end_lat = track_points[-1]
+        folium.Marker(
+            location=[end_lat, end_lon],
+            popup=folium.Popup("<b>End</b>", max_width=150),
+            icon=folium.Icon(color="red", icon="stop", prefix="glyphicon"),
+        ).add_to(track_group)
+
     # Collect bounds from track and POIs for initial auto-fit
     bounds = [[lat, lon] for lon, lat in track_points] if track_points else []
 
