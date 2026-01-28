@@ -60,6 +60,9 @@ function computePadding() {
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const vpW = window.innerWidth
     const vpH = window.innerHeight
+    
+    // On mobile (viewport width < 768px), use minimal padding to avoid over-constraining the map
+    const isMobile = vpW < 768
 
     const sheets = Array.from(document.querySelectorAll('.sheet')) as HTMLElement[]
     let maxLeft = 0
@@ -94,16 +97,37 @@ function computePadding() {
       }
     }
 
-    if (maxLeft > 0) {
-      padLeft += maxLeft
-      occLeft += maxLeft
+    if (!isMobile) {
+      // Desktop: apply full padding from sheets
+      if (maxLeft > 0) {
+        padLeft += maxLeft
+        occLeft += maxLeft
+      }
+      if (maxRight > 0) {
+        padRight += maxRight
+        occRight += maxRight
+      }
+      if (maxTop > 0) padTop += maxTop
+      if (maxBottom > 0) padBottom += maxBottom
+    } else {
+      // Mobile: only add padding from sheets if they don't cover too much area
+      // If a sheet covers >30% of viewport on any side, skip padding from that side
+      const maxAreaRatio = 0.3
+      if (maxLeft > 0 && maxLeft < vpW * maxAreaRatio) {
+        padLeft += maxLeft
+        occLeft += maxLeft
+      }
+      if (maxRight > 0 && maxRight < vpW * maxAreaRatio) {
+        padRight += maxRight
+        occRight += maxRight
+      }
+      if (maxTop > 0 && maxTop < vpH * maxAreaRatio) {
+        padTop += maxTop
+      }
+      if (maxBottom > 0 && maxBottom < vpH * maxAreaRatio) {
+        padBottom += maxBottom
+      }
     }
-    if (maxRight > 0) {
-      padRight += maxRight
-      occRight += maxRight
-    }
-    if (maxTop > 0) padTop += maxTop
-    if (maxBottom > 0) padBottom += maxBottom
   }
 
   return { padTop, padLeft, padRight, padBottom, occLeft, occRight }
@@ -133,17 +157,26 @@ function FitBounds({ track, pois }: { track: [number, number][]; pois: MapPoi[] 
     pois.forEach((p) => points.push([p.coords[1], p.coords[0]]))
     if (!points.length) return
     const bounds = L.latLngBounds(points as L.LatLngExpression[])
-    const { padTop, padLeft, padRight, padBottom } = computePadding()
-
-    // Run after layout to ensure Leaflet has correct container size
+    
+    // Use double requestAnimationFrame for better mobile compatibility
+    // First frame ensures DOM is rendered, second ensures map container is sized
     requestAnimationFrame(() => {
-      map.invalidateSize()
-      map.fitBounds(bounds, {
-        paddingTopLeft: [padLeft, padTop],
-        paddingBottomRight: [padRight, padBottom],
-        animate: false,
+      requestAnimationFrame(() => {
+        // Force map to recalculate its size before computing padding
+        map.invalidateSize({ pan: false })
+        
+        // Wait longer for mobile layouts to fully settle (increased from 50ms)
+        setTimeout(() => {
+          const { padTop, padLeft, padRight, padBottom } = computePadding()
+          map.fitBounds(bounds, {
+            paddingTopLeft: [padLeft, padTop],
+            paddingBottomRight: [padRight, padBottom],
+            maxZoom: 14, // Prevent excessive zoom-in on mobile
+            animate: false,
+          })
+          lastSigRef.current = signature
+        }, 150)
       })
-      lastSigRef.current = signature
     })
   }
 
@@ -186,14 +219,22 @@ function RecenterButton({ track, pois }: { track: [number, number][]; pois: MapP
     track.forEach(([lon, lat]) => points.push([lat, lon]))
     pois.forEach((p) => points.push([p.coords[1], p.coords[0]]))
     const bounds = L.latLngBounds(points as L.LatLngExpression[])
+    
+    // Force recalculation of map size (crucial for mobile)
+    map.invalidateSize({ pan: false })
+    
+    // Compute padding after invalidateSize to get correct dimensions
     const { padTop, padLeft, padRight, padBottom } = computePadding()
 
-    map.invalidateSize()
-    map.fitBounds(bounds, {
-      paddingTopLeft: [padLeft, padTop],
-      paddingBottomRight: [padRight, padBottom],
-      animate: true,
-    })
+    // Use setTimeout to ensure padding calculations are based on updated layout
+    setTimeout(() => {
+      map.fitBounds(bounds, {
+        paddingTopLeft: [padLeft, padTop],
+        paddingBottomRight: [padRight, padBottom],
+        maxZoom: 14, // Prevent excessive zoom-in on mobile
+        animate: true,
+      })
+    }, 10)
   }
 
   return (
