@@ -50,6 +50,35 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
+.locate-control:disabled,
+.recenter-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: #f9fafb;
+}
+
+.locate-control.locating {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.locate-control.locating svg {
+  animation: pulse-locate 1.5s ease-in-out infinite;
+  stroke: #3b82f6;
+}
+
+@keyframes pulse-locate {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
 .locate-control svg,
 .recenter-control svg {
   stroke: #2c3e50;
@@ -59,13 +88,6 @@
 
 .recenter-control {
   top: 176px; /* below tile selector */
-}
-
-.recenter-control:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  background: #f9fafb;
 }
 
 .tile-control-wrapper {

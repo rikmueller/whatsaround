@@ -322,11 +322,48 @@ function RecenterButton({ track, pois }: { track: [number, number][]; pois: MapP
 
 function LocateButton() {
   const map = useMap()
+  const [isLocating, setIsLocating] = useState(false)
+
+  useEffect(() => {
+    const onLocationFound = (e: L.LocationEvent) => {
+      setIsLocating(false)
+      map.setView(e.latlng, Math.max(map.getZoom(), 14))
+    }
+
+    const onLocationError = () => {
+      setIsLocating(false)
+    }
+
+    map.on('locationfound', onLocationFound)
+    map.on('locationerror', onLocationError)
+
+    return () => {
+      map.off('locationfound', onLocationFound)
+      map.off('locationerror', onLocationError)
+      map.stopLocate()
+    }
+  }, [map])
+
   const handleLocate = () => {
-    map.locate({ setView: true, maxZoom: 14 })
+    if (isLocating) return
+    setIsLocating(true)
+    map.locate({
+      setView: false,
+      maxZoom: 14,
+      enableHighAccuracy: false,
+      timeout: 10000,
+      maximumAge: 30000 // Accept cached position up to 30 seconds old
+    })
   }
+
   return (
-    <button className="locate-control" onClick={handleLocate} title="Locate me" aria-label="Locate me">
+    <button 
+      className={`locate-control ${isLocating ? 'locating' : ''}`}
+      onClick={handleLocate} 
+      title="Locate me" 
+      aria-label="Locate me"
+      disabled={isLocating}
+    >
       <Crosshair size={18} />
     </button>
   )
