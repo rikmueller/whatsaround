@@ -3,7 +3,6 @@ import json
 import folium
 from string import Template
 from folium.plugins import LocateControl
-from datetime import datetime
 
 
 def build_folium_map(
@@ -13,16 +12,30 @@ def build_folium_map(
     project_name: str,
     map_cfg: dict,
     include_filters: list | None = None,
-    timestamp: str | None = None,
+    filename: str | None = None,
 ) -> str:
     """
     Generate a Folium map with track and markers.
     Marker colors are assigned based on filter rank.
+    
+    Args:
+        df: DataFrame with POI data
+        track_points: List of (lon, lat) track coordinates
+        output_path: Output directory
+        project_name: Project name (unused, kept for compatibility)
+        map_cfg: Map configuration dict
+        include_filters: List of include filters for color coding
+        filename: Filename to use (e.g., UUID-based). If None, uses project_name.html
+    
+    Returns:
+        Path to generated HTML file
     """
     os.makedirs(output_path, exist_ok=True)
-    if timestamp is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    html_path = os.path.join(output_path, f"{project_name}_{timestamp}.html")
+    if filename is None:
+        filename = f"{project_name}.html"
+    elif not filename.endswith('.html'):
+        filename = f"{filename}.html"
+    html_path = os.path.join(output_path, filename)
 
     start_lon, start_lat = track_points[0]
 

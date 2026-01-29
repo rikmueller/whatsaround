@@ -89,11 +89,11 @@ export const apiClient = {
     return response.data
   },
 
-  getExcelDownloadUrl(filename: string): string {
-    return `${API_BASE}/download/excel/${filename}`
+  getExcelDownloadUrl(jobId: string): string {
+    return `${API_BASE}/download/excel/${jobId}`
   },
 
-  getHtmlMapUrl(filename: string): string {
-    return `${API_BASE}/download/html/${filename}`
+  getHtmlMapUrl(jobId: string): string {
+    return `${API_BASE}/download/html/${jobId}`
   },
 }

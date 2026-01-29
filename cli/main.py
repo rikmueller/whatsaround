@@ -14,8 +14,6 @@ from core.overpass import query_overpass_segmented
 from core.filtering import filter_elements_and_build_rows
 from core.export import export_to_excel
 from core.folium_map import build_folium_map
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +24,20 @@ def run_pipeline(
     cli_include: list | None = None,
     cli_exclude: list | None = None,
     progress_callback=None,
+    excel_filename: str | None = None,
+    html_filename: str | None = None,
 ):
     """
     Core pipeline function that can be called from CLI or web app.
     
     Args:
         config: Dictionary containing all configuration (project, search, overpass, map, etc.)
+        cli_presets: List of preset names to apply
+        cli_include: List of include filters
+        cli_exclude: List of exclude filters
+        progress_callback: Callable(percent, message) for progress updates
+        excel_filename: Optional filename for Excel output (UUID-based). If None, uses project_name.xlsx
+        html_filename: Optional filename for HTML output (UUID-based). If None, uses project_name.html
     
     Returns:
         dict: Results containing paths to Excel and HTML files, dataframe, and metadata
@@ -42,15 +48,6 @@ def run_pipeline(
                 progress_callback(percent, message)
             except Exception:
                 logger.debug("Progress callback failed", exc_info=True)
-
-    # Generate single timestamp for both Excel and HTML files, respecting configured timezone
-    timezone_str = config.get("project", {}).get("timezone", "UTC")
-    try:
-        tz = ZoneInfo(timezone_str)
-    except Exception:
-        logger.warning(f"Invalid timezone '{timezone_str}', falling back to UTC")
-        tz = ZoneInfo("UTC")
-    timestamp = datetime.now(tz).strftime("%Y%m%d_%H%M%S")
 
     report_progress(5, "Preparing pipeline...")
     
@@ -113,7 +110,7 @@ def run_pipeline(
         df=df,
         output_path=config["project"]["output_path"],
         project_name=config["project"]["name"],
-        timestamp=timestamp,
+        filename=excel_filename,
     )
     report_progress(90, "Excel exported. Building map...")
 
@@ -125,7 +122,7 @@ def run_pipeline(
         project_name=config["project"]["name"],
         map_cfg=config["map"],
         include_filters=include_filters,
-        timestamp=timestamp,
+        filename=html_filename,
     )
     report_progress(95, "Map generated. Finalizing...")
 

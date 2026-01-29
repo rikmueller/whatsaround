@@ -1,16 +1,27 @@
 import os
-from datetime import datetime
 
 
-def export_to_excel(df, output_path: str, project_name: str, timestamp: str = None) -> str:
+def export_to_excel(df, output_path: str, project_name: str, filename: str = None) -> str:
     """
     Export the DataFrame as an Excel file.
+    
+    Args:
+        df: DataFrame to export
+        output_path: Output directory path
+        project_name: Project name (unused, kept for compatibility)
+        filename: Filename to use (e.g., UUID-based). If None, uses project_name.xlsx
+    
+    Returns:
+        Full path to the exported Excel file
     """
     import pandas as pd
 
     os.makedirs(output_path, exist_ok=True)
-    if timestamp is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    excel_path = os.path.join(output_path, f"{project_name}_{timestamp}.xlsx")
+    if filename is None:
+        filename = f"{project_name}.xlsx"
+    elif not filename.endswith('.xlsx'):
+        filename = f"{filename}.xlsx"
+    
+    excel_path = os.path.join(output_path, filename)
     df.to_excel(excel_path, index=False)
     return excel_path

@@ -324,7 +324,7 @@ export default function SettingsSheet({
               <div className="download-icons">
                 {status?.excel_file && (
                   <a
-                    href={`/api/download/excel/${status.excel_file}`}
+                    href={`/api/download/excel/${status.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="download-icon"
@@ -335,7 +335,7 @@ export default function SettingsSheet({
                 )}
                 {status?.html_file && (
                   <a
-                    href={`/api/download/html/${status.html_file}`}
+                    href={`/api/download/html/${status.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="download-icon"

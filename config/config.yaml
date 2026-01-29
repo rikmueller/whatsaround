@@ -67,5 +67,15 @@ overpass:
     - "https://overpass-api.de/api/interpreter"
     - "https://lz4.overpass-api.de/api/interpreter"
 
+cleanup:
+  # Interval between cleanup runs (in seconds)
+  interval_seconds: 600
+  # Time-to-live for completed/failed jobs in registry (in seconds)
+  job_ttl_seconds: 21600
+  # Maximum age for temp upload files before deletion (in seconds)
+  temp_file_max_age_seconds: 3600
+  # Retention period for output files (in days)
+  output_retention_days: 10
+
 # Path to the presets file containing predefined filter profiles (don´t change)
 presets_file: "presets.yaml"
