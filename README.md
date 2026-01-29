@@ -1,3 +1,13 @@
+# ⚠️ Under Active Development
+
+<div align="center">
+    <p style="background-color:#fff3cd;border:1px solid #ffeeba;padding:12px;border-radius:6px;color:#856404;max-width:900px;margin:0 auto;">
+        <strong>⚠️ Under active development</strong> — This project is under heavy development. Features, APIs, and behavior may change or break without notice. Documentation may be out of date. Use at your own risk.
+    </p>
+</div>
+
+---
+
 # AlongGPX
 
 **Find OpenStreetMap POIs along GPX tracks. Plan trips smarter: campsites, water sources, shelters—all organized by distance from your route.**
