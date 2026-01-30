@@ -103,7 +103,10 @@ jobs:
           file: ./docker/Dockerfile.nginx
           platforms: linux/amd64
           push: true
-ype=gha,mode=max
+          provenance: min
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ steps.meta-frontend.outputs.tags }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:latest
