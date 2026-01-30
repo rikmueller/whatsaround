@@ -109,6 +109,7 @@ def load_config_from_env() -> dict:
         'search': {
             'radius_km': _get_float('ALONGGPX_RADIUS_KM', 5.0),
             'step_km': _get_float('ALONGGPX_STEP_KM'),  # None = auto-calculate
+            'presets': _parse_semicolon_list(os.getenv('ALONGGPX_PRESETS')),
             'include': _parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_INCLUDE')),
             'exclude': _parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_EXCLUDE')),
         },

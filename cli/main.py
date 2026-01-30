@@ -72,6 +72,7 @@ def load_cli_config(args) -> dict:
         'search': {
             'radius_km': get_float('ALONGGPX_RADIUS_KM', 5.0),
             'step_km': get_float('ALONGGPX_STEP_KM'),  # None = auto-calculate
+            'presets': parse_semicolon_list(os.getenv('ALONGGPX_PRESETS')),
             'include': parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_INCLUDE')),
             'exclude': parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_EXCLUDE')),
         },
@@ -262,10 +263,13 @@ def main():
     # Load configuration from cli/.env and apply CLI overrides
     config = load_cli_config(args)
 
+    # Use CLI presets if provided, otherwise fall back to config presets
+    presets = args.presets if args.presets is not None else config['search'].get('presets', [])
+    
     try:
         result = run_pipeline(
             config,
-            cli_presets=args.presets,
+            cli_presets=presets,
             cli_include=args.include,
             cli_exclude=args.exclude,
         )

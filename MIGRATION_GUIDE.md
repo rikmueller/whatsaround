@@ -116,6 +116,7 @@ AlongGPX configuration has been restructured to separate CLI and Docker concerns
 | `input.gpx_file`               | `ALONGGPX_GPX_FILE`             | CLI only    |
 | `search.radius_km`             | `ALONGGPX_RADIUS_KM`            | CLI, Docker |
 | `search.step_km`               | `ALONGGPX_STEP_KM`              | CLI, Docker |
+| N/A (new)                      | `ALONGGPX_PRESETS`              | CLI, Docker |
 | `search.include`               | `ALONGGPX_SEARCH_INCLUDE`       | CLI, Docker |
 | `search.exclude`               | `ALONGGPX_SEARCH_EXCLUDE`       | CLI, Docker |
 | `overpass.retries`             | `ALONGGPX_OVERPASS_RETRIES`     | CLI, Docker |
@@ -133,7 +134,8 @@ AlongGPX configuration has been restructured to separate CLI and Docker concerns
 - **Old:** YAML arrays
 - **New:** Semicolon-separated strings
   ```bash
-  # Example:
+  # Examples:
+  ALONGGPX_PRESETS=shelters;drinking_water
   ALONGGPX_SEARCH_INCLUDE=tourism=camp_site;amenity=shelter
   ALONGGPX_OVERPASS_SERVERS=https://server1.com;https://server2.com
   ```
