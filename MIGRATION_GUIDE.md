@@ -75,6 +75,8 @@ AlongGPX configuration has been restructured to separate CLI and Docker concerns
    ALONGGPX_RADIUS_KM=5
    # ... etc
    ```
+   
+   **Note:** Fixed Docker paths (FLASK_PORT, ALONGGPX_OUTPUT_PATH, ALONGGPX_PRESETS_FILE) are set in `docker-compose.yml` and should not be changed in `.env`.
 
 3. **Start Docker (same command as before):**
    ```bash

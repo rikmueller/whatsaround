@@ -10,7 +10,25 @@ services:
     env_file:
       - .env  # Load from docker/.env
     environment:
+      # Fixed configuration for Docker deployment
+      - FLASK_PORT=5000
       - FLASK_ENV=development
+      - ALONGGPX_OUTPUT_PATH=/app/data/output
+      - ALONGGPX_PRESETS_FILE=/app/data/presets.yaml
+      # Overpass API defaults (don´t change unless you know what you´re doing)
+      - ALONGGPX_OVERPASS_RETRIES=3
+      - ALONGGPX_BATCH_KM=50
+      - ALONGGPX_STEP_KM=
+      - ALONGGPX_OVERPASS_SERVERS=https://overpass.private.coffee/api/interpreter;https://overpass-api.de/api/interpreter;https://lz4.overpass-api.de/api/interpreter
+      # Cleanup defaults
+      - ALONGGPX_CLEANUP_INTERVAL_SECONDS=600
+      - ALONGGPX_JOB_TTL_SECONDS=21600
+      - ALONGGPX_TEMP_FILE_MAX_AGE_SECONDS=3600
+      - ALONGGPX_OUTPUT_RETENTION_DAYS=10
+      # Map defaults
+      - ALONGGPX_TRACK_COLOR=blue
+      - ALONGGPX_DEFAULT_MARKER_COLOR=gray
+      - ALONGGPX_MARKER_COLOR_PALETTE=orange;purple;green;blue;darkred;darkblue;darkgreen;cadetblue;pink
     volumes:
       - ../cli:/app/cli
       - ../core:/app/core
