@@ -2,12 +2,12 @@
 import sys
 import os
 import logging
+from dotenv import load_dotenv
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.cli import parse_cli_args
-from core.config import load_and_merge_config
 from core.presets import load_presets, apply_presets_to_filters
 from core.gpx_processing import load_gpx_track, compute_track_metrics
 from core.overpass import query_overpass_segmented
@@ -16,6 +16,115 @@ from core.export import export_to_excel
 from core.folium_map import build_folium_map
 
 logger = logging.getLogger(__name__)
+
+
+def load_cli_config(args) -> dict:
+    """
+    Load CLI configuration from cli/.env file and apply CLI argument overrides.
+    
+    Args:
+        args: Parsed CLI arguments from argparse
+    
+    Returns:
+        dict: Complete configuration dictionary
+    """
+    # Load cli/.env file (must be in cli/ directory)
+    cli_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(cli_dir, '.env')
+    
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        logger.info(f"Loaded configuration from {env_path}")
+    else:
+        logger.warning(f"No .env file found at {env_path}, using defaults")
+    
+    # Helper functions for parsing
+    def parse_semicolon_list(value: str | None) -> list:
+        if not value:
+            return []
+        return [item.strip() for item in value.split(';') if item.strip()]
+    
+    def get_float(key: str, default: float | None = None) -> float | None:
+        value = os.getenv(key)
+        if value is None or value == '':
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    def get_int(key: str, default: int) -> int:
+        try:
+            return int(os.getenv(key, default))
+        except (ValueError, TypeError):
+            return default
+    
+    # Build config from environment variables
+    config = {
+        'project': {
+            'name': os.getenv('ALONGGPX_PROJECT_NAME', 'AlongGPX'),
+            'output_path': os.getenv('ALONGGPX_OUTPUT_PATH', '../data/output'),
+            'timezone': os.getenv('ALONGGPX_TIMEZONE', 'UTC'),
+        },
+        'input': {
+            'gpx_file': os.getenv('ALONGGPX_GPX_FILE', '../data/input/example.gpx'),
+        },
+        'search': {
+            'radius_km': get_float('ALONGGPX_RADIUS_KM', 5.0),
+            'step_km': get_float('ALONGGPX_STEP_KM'),  # None = auto-calculate
+            'include': parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_INCLUDE')),
+            'exclude': parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_EXCLUDE')),
+        },
+        'overpass': {
+            'retries': get_int('ALONGGPX_OVERPASS_RETRIES', 5),
+            'batch_km': get_float('ALONGGPX_BATCH_KM', 50.0),
+            'servers': parse_semicolon_list(
+                os.getenv('ALONGGPX_OVERPASS_SERVERS')
+            ) or [
+                'https://overpass.private.coffee/api/interpreter',
+                'https://overpass-api.de/api/interpreter',
+                'https://lz4.overpass-api.de/api/interpreter',
+            ],
+        },
+        'map': {
+            'track_color': os.getenv('ALONGGPX_TRACK_COLOR', 'blue'),
+            'default_marker_color': os.getenv('ALONGGPX_DEFAULT_MARKER_COLOR', 'gray'),
+            'marker_color_palette': parse_semicolon_list(
+                os.getenv('ALONGGPX_MARKER_COLOR_PALETTE')
+            ) or ['orange', 'purple', 'green', 'blue', 'darkred', 'darkblue', 'darkgreen', 'cadetblue', 'pink'],
+        },
+        'presets_file': os.getenv('ALONGGPX_PRESETS_FILE', 'data/presets.yaml'),
+    }
+    
+    # Apply CLI argument overrides (highest precedence)
+    if args.project_name:
+        config['project']['name'] = args.project_name
+    if args.output_path:
+        config['project']['output_path'] = args.output_path
+    if args.gpx_file:
+        config['input']['gpx_file'] = args.gpx_file
+    if args.radius_km is not None:
+        config['search']['radius_km'] = args.radius_km
+    if args.step_km is not None:
+        config['search']['step_km'] = args.step_km
+    
+    # Auto-calculate step_km if not set
+    if config['search']['step_km'] is None:
+        config['search']['step_km'] = config['search']['radius_km'] * 0.6
+    
+    # Resolve relative paths to absolute (relative to repo root, parent of cli/)
+    repo_root = os.path.dirname(cli_dir)
+    config['project']['output_path'] = os.path.abspath(
+        os.path.join(repo_root, config['project']['output_path'])
+    )
+    config['input']['gpx_file'] = os.path.abspath(
+        os.path.join(repo_root, config['input']['gpx_file'])
+    )
+    config['presets_file'] = os.path.abspath(
+        os.path.join(repo_root, config['presets_file'])
+    )
+    
+    return config
 
 
 def run_pipeline(
@@ -51,10 +160,14 @@ def run_pipeline(
 
     report_progress(5, "Preparing pipeline...")
     
-    # Load presets
-    presets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
-                                "config", config.get("presets_file", "presets.yaml"))
-    presets = load_presets(presets_path)
+    # Load presets (path should already be absolute from load_cli_config)
+    presets_file = config.get("presets_file", "data/presets.yaml")
+    if not os.path.isabs(presets_file):
+        # If called from backend, make relative paths absolute from repo root
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        presets_file = os.path.abspath(os.path.join(repo_root, presets_file))
+    
+    presets = load_presets(presets_file)
 
     # Apply presets to include/exclude
     include_filters, exclude_filters = apply_presets_to_filters(
@@ -146,13 +259,8 @@ def main():
     # Read CLI arguments
     args = parse_cli_args()
 
-    # If config path is default (not overridden), resolve it relative to repo root
-    if args.config == "config.yaml":
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        args.config = os.path.join(repo_root, "config", "config.yaml")
-
-    # Merge configuration from YAML + CLI
-    config = load_and_merge_config(args.config, args)
+    # Load configuration from cli/.env and apply CLI overrides
+    config = load_cli_config(args)
 
     try:
         result = run_pipeline(

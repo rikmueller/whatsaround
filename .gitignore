@@ -25,5 +25,8 @@ data/output/!example*.html
 # Logs
 *.log
 
-# Local environment overrides
+# Environment files (contain secrets/config)
+cli/.env
+docker/.env
+web/.env
 config/.env

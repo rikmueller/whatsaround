@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY core ./core
 COPY cli ./cli
 COPY backend ./backend
-COPY config ./config
+COPY data/presets.yaml ./data/presets.yaml
 
 # Create data directories with proper permissions
 RUN mkdir -p /app/data/input /app/data/output && chmod 777 /app/data/output

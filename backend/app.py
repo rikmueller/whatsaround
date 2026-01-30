@@ -22,7 +22,6 @@ from flask import Flask, request, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room
 
 from cli.main import run_pipeline
-from core.config import load_yaml_config, load_env_config, merge_env_into_config
 from core.presets import load_presets
 from core.gpx_processing import load_gpx_track
 
@@ -65,13 +64,107 @@ ALLOWED_EXTENSIONS = {'gpx'}
 job_registry = {}
 job_registry_lock = threading.Lock()
 
-# Load cleanup settings from config.yaml (environment variables can override)
-config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-_cleanup_cfg = load_yaml_config(config_path).get('cleanup', {})
-CLEANUP_INTERVAL_SECONDS = int(os.getenv('ALONGGPX_CLEANUP_INTERVAL_SECONDS', _cleanup_cfg.get('interval_seconds', 600)))
-JOB_TTL_SECONDS = int(os.getenv('ALONGGPX_JOB_TTL_SECONDS', _cleanup_cfg.get('job_ttl_seconds', 3600)))
-TEMP_FILE_MAX_AGE_SECONDS = int(os.getenv('ALONGGPX_TEMP_FILE_MAX_AGE_SECONDS', _cleanup_cfg.get('temp_file_max_age_seconds', 3600)))
-OUTPUT_RETENTION_DAYS = int(os.getenv('ALONGGPX_OUTPUT_RETENTION_DAYS', _cleanup_cfg.get('output_retention_days', 30)))
+
+# ============================================================================
+# Configuration Loader - Reads from environment variables only
+# ============================================================================
+
+def _parse_semicolon_list(value: str | None, default: list = None) -> list:
+    """Parse semicolon-separated string into list."""
+    if not value:
+        return default or []
+    return [item.strip() for item in value.split(';') if item.strip()]
+
+
+def _get_int(key: str, default: int) -> int:
+    """Get integer from environment variable."""
+    try:
+        return int(os.getenv(key, default))
+    except (ValueError, TypeError):
+        return default
+
+
+def _get_float(key: str, default: float | None = None) -> float | None:
+    """Get float from environment variable."""
+    value = os.getenv(key)
+    if value is None or value == '':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def load_config_from_env() -> dict:
+    """
+    Load configuration from environment variables only.
+    No YAML files, no complex merging - just pure environment variables with defaults.
+    """
+    config = {
+        'project': {
+            'name': os.getenv('ALONGGPX_PROJECT_NAME', 'AlongGPX'),
+            'output_path': os.getenv('ALONGGPX_OUTPUT_PATH', './data/output'),
+            'timezone': os.getenv('ALONGGPX_TIMEZONE', 'UTC'),
+        },
+        'search': {
+            'radius_km': _get_float('ALONGGPX_RADIUS_KM', 5.0),
+            'step_km': _get_float('ALONGGPX_STEP_KM'),  # None = auto-calculate
+            'include': _parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_INCLUDE')),
+            'exclude': _parse_semicolon_list(os.getenv('ALONGGPX_SEARCH_EXCLUDE')),
+        },
+        'overpass': {
+            'retries': _get_int('ALONGGPX_OVERPASS_RETRIES', 5),
+            'batch_km': _get_float('ALONGGPX_BATCH_KM', 50.0),
+            'servers': _parse_semicolon_list(
+                os.getenv('ALONGGPX_OVERPASS_SERVERS'),
+                default=[
+                    'https://overpass.private.coffee/api/interpreter',
+                    'https://overpass-api.de/api/interpreter',
+                    'https://lz4.overpass-api.de/api/interpreter',
+                ]
+            ),
+        },
+        'map': {
+            'track_color': os.getenv('ALONGGPX_TRACK_COLOR', 'blue'),
+            'default_marker_color': os.getenv('ALONGGPX_DEFAULT_MARKER_COLOR', 'gray'),
+            'marker_color_palette': _parse_semicolon_list(
+                os.getenv('ALONGGPX_MARKER_COLOR_PALETTE'),
+                default=['orange', 'purple', 'green', 'blue', 'darkred', 'darkblue', 'darkgreen', 'cadetblue', 'pink']
+            ),
+        },
+        'cleanup': {
+            'interval_seconds': _get_int('ALONGGPX_CLEANUP_INTERVAL_SECONDS', 600),
+            'job_ttl_seconds': _get_int('ALONGGPX_JOB_TTL_SECONDS', 21600),
+            'temp_file_max_age_seconds': _get_int('ALONGGPX_TEMP_FILE_MAX_AGE_SECONDS', 3600),
+            'output_retention_days': _get_int('ALONGGPX_OUTPUT_RETENTION_DAYS', 10),
+        },
+        'presets_file': os.getenv('ALONGGPX_PRESETS_FILE', 'data/presets.yaml'),
+    }
+    
+    # Auto-calculate step_km if not set
+    if config['search']['step_km'] is None:
+        config['search']['step_km'] = config['search']['radius_km'] * 0.6
+    
+    # Ensure output path is absolute
+    config['project']['output_path'] = os.path.abspath(config['project']['output_path'])
+    
+    return config
+
+
+# Load configuration once at startup
+APP_CONFIG = load_config_from_env()
+
+# Extract cleanup settings for global use
+CLEANUP_INTERVAL_SECONDS = APP_CONFIG['cleanup']['interval_seconds']
+JOB_TTL_SECONDS = APP_CONFIG['cleanup']['job_ttl_seconds']
+TEMP_FILE_MAX_AGE_SECONDS = APP_CONFIG['cleanup']['temp_file_max_age_seconds']
+OUTPUT_RETENTION_DAYS = APP_CONFIG['cleanup']['output_retention_days']
+
+logger.info(f"Configuration loaded from environment variables")
+logger.info(f"  Output path: {APP_CONFIG['project']['output_path']}")
+logger.info(f"  Presets file: {APP_CONFIG['presets_file']}")
+logger.info(f"  Radius: {APP_CONFIG['search']['radius_km']}km, Step: {APP_CONFIG['search']['step_km']}km")
+logger.info(f"  Cleanup: jobs={JOB_TTL_SECONDS}s, temp={TEMP_FILE_MAX_AGE_SECONDS}s, output={OUTPUT_RETENTION_DAYS}d")
 
 UUID_GPX_RE = re.compile(r'^[0-9a-fA-F-]{36}\.gpx$')
 UUID_OUTPUT_RE = re.compile(r'^[0-9a-fA-F-]{36}\.(xlsx|html)$')
@@ -167,11 +260,7 @@ def _cleanup_temp_uploads(now_ts: float):
 
 def _cleanup_output_files(now_ts: float):
     try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        cfg = load_yaml_config(config_path)
-        env_cfg = load_env_config()
-        cfg = merge_env_into_config(cfg, env_cfg)
-        output_dir = os.path.abspath(cfg['project']['output_path'])
+        output_dir = APP_CONFIG['project']['output_path']
         max_age_seconds = OUTPUT_RETENTION_DAYS * 86400
 
         for name in os.listdir(output_dir):
@@ -305,24 +394,19 @@ def health_check():
 @app.route('/api/config', methods=['GET'])
 def get_config():
     try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        config = load_yaml_config(config_path)
-        env_cfg = load_env_config()
-        config = merge_env_into_config(config, env_cfg)
-        presets_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'presets.yaml')
-        presets = load_presets(presets_path)
+        presets = load_presets(APP_CONFIG['presets_file'])
         return jsonify({
             'defaults': {
-                'project_name': config['project']['name'],
-                'radius_km': config['search']['radius_km'],
-                'step_km': config['search']['step_km'],
-                'include': config['search'].get('include', []),
-                'exclude': config['search'].get('exclude', []),
+                'project_name': APP_CONFIG['project']['name'],
+                'radius_km': APP_CONFIG['search']['radius_km'],
+                'step_km': APP_CONFIG['search']['step_km'],
+                'include': APP_CONFIG['search'].get('include', []),
+                'exclude': APP_CONFIG['search'].get('exclude', []),
             },
             'presets': list(presets.keys()),
             'presets_detail': {name: p for name, p in presets.items()},
-            'marker_color_palette': config.get('map', {}).get('marker_color_palette', []),
-            'default_marker_color': config.get('map', {}).get('default_marker_color', 'gray'),
+            'marker_color_palette': APP_CONFIG['map'].get('marker_color_palette', []),
+            'default_marker_color': APP_CONFIG['map'].get('default_marker_color', 'gray'),
         }), 200
     except Exception as e:
         logger.error(f"Config fetch failed: {e}")
@@ -356,28 +440,35 @@ def process_gpx():
         temp_gpx_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
         file.save(temp_gpx_path)
         logger.info(f"Processing GPX: {temp_gpx_path}")
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        config = load_yaml_config(config_path)
-        env_cfg = load_env_config()
-        config = merge_env_into_config(config, env_cfg)
-        # Ensure optional search filters exist even if omitted in YAML
-        config.setdefault('search', {})
-        config['search'].setdefault('include', [])
-        config['search'].setdefault('exclude', [])
-        if 'project_name' in request.form:
-            config['project']['name'] = request.form['project_name']
-        else:
-            config['project']['name'] = os.path.splitext(filename)[0]
-        if 'radius_km' in request.form:
-            config['search']['radius_km'] = float(request.form['radius_km'])
-        if 'step_km' in request.form:
-            config['search']['step_km'] = float(request.form['step_km'])
+        
+        # Build config from APP_CONFIG (environment variables)
+        config = {
+            'project': {
+                'name': request.form.get('project_name', APP_CONFIG['project']['name']),
+                'output_path': APP_CONFIG['project']['output_path'],
+                'timezone': APP_CONFIG['project']['timezone'],
+            },
+            'input': {
+                'gpx_file': temp_gpx_path,
+            },
+            'search': {
+                'radius_km': float(request.form.get('radius_km', APP_CONFIG['search']['radius_km'])),
+                'step_km': float(request.form.get('step_km')) if 'step_km' in request.form else APP_CONFIG['search']['step_km'],
+                'include': APP_CONFIG['search']['include'],
+                'exclude': APP_CONFIG['search']['exclude'],
+            },
+            'overpass': APP_CONFIG['overpass'],
+            'map': APP_CONFIG['map'],
+        }
+        
+        # Auto-calculate step_km if not set
+        if config['search']['step_km'] is None:
+            config['search']['step_km'] = config['search']['radius_km'] * 0.6
+        
         form_presets = request.form.getlist('preset') if 'preset' in request.form else None
         form_includes = request.form.getlist('include') if 'include' in request.form else None
         form_excludes = request.form.getlist('exclude') if 'exclude' in request.form else None
-        if config['search']['step_km'] is None:
-            config['search']['step_km'] = config['search']['radius_km'] * 0.6
-        config['input']['gpx_file'] = temp_gpx_path
+        
         os.makedirs(config['project']['output_path'], exist_ok=True)
         job_id = create_job(config['project']['name'])
         update_job(job_id, temp_gpx_path=temp_gpx_path)
@@ -404,11 +495,7 @@ def download_excel(job_id):
         if not excel_uuid:
             return jsonify({'error': 'Excel file not available'}), 404
         
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        cfg = load_yaml_config(config_path)
-        env_cfg = load_env_config()
-        cfg = merge_env_into_config(cfg, env_cfg)
-        output_dir = os.path.abspath(cfg['project']['output_path'])
+        output_dir = APP_CONFIG['project']['output_path']
         file_path = os.path.join(output_dir, secure_filename(excel_uuid))
         logger.info(f"Download Excel requested for job {job_id}: {file_path}")
         
@@ -435,11 +522,7 @@ def download_html(job_id):
         if not html_uuid:
             return jsonify({'error': 'HTML file not available'}), 404
         
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        cfg = load_yaml_config(config_path)
-        env_cfg = load_env_config()
-        cfg = merge_env_into_config(cfg, env_cfg)
-        output_dir = os.path.abspath(cfg['project']['output_path'])
+        output_dir = APP_CONFIG['project']['output_path']
         file_path = os.path.join(output_dir, secure_filename(html_uuid))
         logger.info(f"Download HTML requested for job {job_id}: {file_path}")
         

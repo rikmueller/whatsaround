@@ -7,15 +7,15 @@ services:
     container_name: alonggpx-app-dev
     ports:
       - "5000:5000"
+    env_file:
+      - .env  # Load from docker/.env
     environment:
       - FLASK_ENV=development
-      - FLASK_PORT=5000
     volumes:
       - ../cli:/app/cli
       - ../core:/app/core
       - ../backend/app.py:/app/backend/app.py
-      - ../config.yaml:/app/config.yaml:ro
-      - ../presets.yaml:/app/presets.yaml:ro
+      - ../data/presets.yaml:/app/data/presets.yaml:ro
       - ../data/input:/app/data/input:ro
       - ../data/output:/app/data/output:rw
     restart: unless-stopped
