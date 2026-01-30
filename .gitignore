@@ -27,6 +27,7 @@ data/output/!example*.html
 
 # Environment files (contain secrets/config)
 cli/.env
-docker/.env
-web/.env
+deployment/.env
+frontend/.env
+frontend/.env.local
 config/.env

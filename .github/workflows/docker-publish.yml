@@ -52,7 +52,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile
+          file: ./deployment/Dockerfile
           platforms: linux/amd64
           push: true
           cache-from: type=gha
@@ -98,7 +98,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.nginx
+          file: ./deployment/Dockerfile.nginx
           platforms: linux/amd64
           push: true
           cache-from: type=gha
@@ -145,7 +145,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile
+          file: ./deployment/Dockerfile
           platforms: linux/amd64
           provenance: false
           push: true
@@ -192,7 +192,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.nginx
+          file: ./deployment/Dockerfile.nginx
           platforms: linux/amd64
           push: true
           cache-from: type=gha

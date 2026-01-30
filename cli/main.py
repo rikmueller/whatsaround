@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.cli import parse_cli_args
-from core.presets import load_presets, apply_presets_to_filters
-from core.gpx_processing import load_gpx_track, compute_track_metrics
-from core.overpass import query_overpass_segmented
-from core.filtering import filter_elements_and_build_rows
-from core.export import export_to_excel
-from core.folium_map import build_folium_map
+from backend.core.cli import parse_cli_args
+from backend.core.presets import load_presets, apply_presets_to_filters
+from backend.core.gpx_processing import load_gpx_track, compute_track_metrics
+from backend.core.overpass import query_overpass_segmented
+from backend.core.filtering import filter_elements_and_build_rows
+from backend.core.export import export_to_excel
+from backend.core.folium_map import build_folium_map
 
 logger = logging.getLogger(__name__)
 

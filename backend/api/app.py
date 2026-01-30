@@ -15,16 +15,16 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room
 
 from cli.main import run_pipeline
-from core.presets import load_presets
-from core.gpx_processing import load_gpx_track
+from backend.core.presets import load_presets
+from backend.core.gpx_processing import load_gpx_track
 
 # Setup logging
 logging.basicConfig(

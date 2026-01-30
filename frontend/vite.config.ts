@@ -6,9 +6,9 @@ import { resolve } from 'path'
 
 // Load cli/.env for shared base configuration
 const cliEnv = dotenv.config({ path: resolve(__dirname, '..', 'cli', '.env') }).parsed || {}
-// Load web/.env for web-specific configuration (overrides cli/.env)
-const webEnv = dotenv.config({ path: resolve(__dirname, '.env') }).parsed || {}
-// Load web/.env.local for local development overrides (highest priority)
+// Load frontend/.env for frontend-specific configuration (overrides cli/.env)
+const frontendEnv = dotenv.config({ path: resolve(__dirname, '.env') }).parsed || {}
+// Load frontend/.env.local for local development overrides (highest priority)
 const localEnv = dotenv.config({ path: resolve(__dirname, '.env.local') }).parsed || {}
 
 const parseHosts = (value?: string) =>
@@ -35,7 +35,7 @@ const buildClientEnv = (vars: Record<string, string>) => {
 
 export default defineConfig(({ mode }) => {
   const viteEnv = loadEnv(mode, process.cwd(), '')
-  const env = { ...cliEnv, ...webEnv, ...viteEnv, ...localEnv, ...process.env }
+  const env = { ...cliEnv, ...frontendEnv, ...viteEnv, ...localEnv, ...process.env }
 
   const allowedHosts = parseHosts(env.VITE_ALLOWED_HOSTS || env.ALONGGPX_HOSTNAME) || ['.']
   const hmrHost = env.ALONGGPX_HOSTNAME || env.VITE_HMR_HOST

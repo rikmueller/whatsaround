@@ -3,12 +3,12 @@ services:
   app:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: deployment/Dockerfile
     container_name: alonggpx-app-dev
     ports:
       - "5000:5000"
     env_file:
-      - .env  # Load from docker/.env
+      - .env  # Load from deployment/.env
     environment:
       # Fixed configuration for Docker deployment
       - FLASK_PORT=5000
@@ -31,19 +31,18 @@ services:
       - ALONGGPX_MARKER_COLOR_PALETTE=orange;purple;green;blue;darkred;darkblue;darkgreen;cadetblue;pink
     volumes:
       - ../cli:/app/cli
-      - ../core:/app/core
-      - ../backend/app.py:/app/backend/app.py
+      - ../backend:/app/backend
       - ../data/presets.yaml:/app/data/presets.yaml:ro
       - ../data/input:/app/data/input:ro
       - ../data/output:/app/data/output:rw
     restart: unless-stopped
-    command: python backend/app.py
+    command: python backend/api/app.py
 
   # React frontend (with hot reload)
   frontend:
     build:
       context: ..
-      dockerfile: web/Dockerfile.dev
+      dockerfile: frontend/Dockerfile.dev
     container_name: alonggpx-frontend-dev
     ports:
       - "3000:3000"
