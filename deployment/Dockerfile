@@ -24,8 +24,8 @@ RUN mkdir -p /app/data/input /app/data/output && \
     chmod 777 /app/data/output && \
     chmod 777 /app/data/input
 
-# Copy example GPX if it exists
-COPY data/input/example.gpx ./data/input/example.gpx 2>/dev/null || true
+# Copy example files if directory has content (empty dir won't cause build failure)
+COPY --chown=root:root data/input ./data/input
 
 # Production stage
 FROM python:3.11-slim
