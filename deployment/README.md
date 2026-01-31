@@ -1,53 +1,29 @@
-# Docker Compose Configurations
+Reverse proxy configuration:
+- Routes `/api/*` → Flask backend
+- Routes `/socket.io/*` → WebSocket/polling
+- Serves frontend static files
+- Used by: `Dockerfile.frontend-prod`
 
-This directory contains Docker Compose configurations for different use cases.
+## 🔧 Building Manually
 
-## Quick Decision
+If you need to build containers manually:
 
-| File | Use When | Best For |
-|------|----------|----------|
-| `docker-compose.yml` | Standard deployment | **Production & development** |
-| `docker-compose.dev.yml` | Frontend development | Hot reload, debugging |
-
-## File Details
-
-### docker-compose.yml
-
-**Purpose:** Standard deployment with local builds from source code
-
-**Advantages:**
-- ✅ Full control over build
-- ✅ Can modify and rebuild code
-- ✅ Works offline (after initial build)
-
-**Usage:**
 ```bash
-docker compose up --build -d
+# Backend
+docker build -f deployment/Dockerfile.backend -t alonggpx-backend .
+
+# Frontend (production)
+docker build -f deployment/Dockerfile.frontend-prod -t alonggpx-frontend .
+
+# Frontend (development)
+docker build -f deployment/Dockerfile.frontend-dev -t alonggpx-frontend-dev .
 ```
 
-**When to use:**
-- You're deploying AlongGPX
-- You're modifying backend or frontend code
-- You need a custom build
+## 📚 See Also
 
----
-
-### docker-compose.dev.yml
-
-**Purpose:** Development mode with hot reload for frontend
-
-**Advantages:**
-- ✅ Frontend hot reload (changes reflect instantly)
-- ✅ Volume-mounted source code
-- ✅ Better for iterative frontend development
-
-**Usage:**
-```bash
-docker compose -f docker-compose.dev.yml up
-```
-
-**When to use:**
-- You're actively developing frontend components
+- [config/docker-prod/README.md](../config/docker-prod/README.md) - Production setup guide
+- [config/docker-dev/README.md](../config/docker-dev/README.md) - Development setup guide
+- [docs/quickstart-docker.md](../docs/quickstart-docker.md) - Detailed Docker documentation
 - You need instant feedback on UI changes
 - You're debugging frontend issues
 

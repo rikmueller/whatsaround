@@ -13,12 +13,11 @@ AlongGPX finds OpenStreetMap POIs along GPX tracks using Overpass API queries, t
 ### Backend Pipeline (Shared by all interfaces)
 Located in `backend/core/` directory - reusable modules called by CLI and web API:
 
-1. **Config**: YAML defaults + env vars + runtime args → merged config ([config.py](../backend/core/config.py))
-2. **Presets**: Load [data/presets.yaml](../data/presets.yaml) → apply to filters ([presets.py](../backend/core/presets.py))
-3. **GPX**: Parse GPX → geodesic distance calculations with `pyproj.Geod(ellps="WGS84")` ([gpx_processing.py](../backend/core/gpx_processing.py))
-4. **Overpass**: Batched queries along track with configurable `batch_km` ([overpass.py](../backend/core/overpass.py))
-5. **Filter**: Include/exclude OSM tags → geodesic distance to track ([filtering.py](../backend/core/filtering.py))
-6. **Export**: DataFrame → Excel + Folium map with color-coded markers ([export.py](../backend/core/export.py), [folium_map.py](../backend/core/folium_map.py))
+1. **Presets**: Load [data/presets.yaml](../data/presets.yaml) → apply to filters ([presets.py](../backend/core/presets.py))
+2. **GPX**: Parse GPX → geodesic distance calculations with `pyproj.Geod(ellps="WGS84")` ([gpx_processing.py](../backend/core/gpx_processing.py))
+3. **Overpass**: Batched queries along track with configurable `batch_km` ([overpass.py](../backend/core/overpass.py))
+4. **Filter**: Include/exclude OSM tags → geodesic distance to track ([filtering.py](../backend/core/filtering.py))
+5. **Export**: DataFrame → Excel + Folium map with color-coded markers ([export.py](../backend/core/export.py), [folium_map.py](../backend/core/folium_map.py))
 
 Entry point: `cli.main.run_pipeline()` - returns dict with paths and metadata
 
@@ -101,7 +100,6 @@ AlongGPX/
 │   └── core/                   # Shared pipeline (DRY - used by CLI & web)
 │       ├── __init__.py
 │       ├── cli.py              # Argument parsing
-│       ├── config.py           # YAML + env var + runtime merging
 │       ├── presets.py          # Filter preset loading/validation
 │       ├── gpx_processing.py   # GPX parsing & geodesic metrics
 │       ├── overpass.py         # Batched Overpass API queries
@@ -127,12 +125,31 @@ AlongGPX/
 │   ├── Dockerfile              # Frontend production build
 │   ├── vite.config.ts          # Vite build config
 │   └── package.json            # React, axios, leaflet, socket.io-client
-├── deployment/                  # Production deployment
-│   ├── docker-compose.yml      # Nginx + Flask backend
-│   ├── docker-compose.dev.yml  # Dev mode (hot reload)
-│   ├── Dockerfile              # Backend container
-│   ├── Dockerfile.nginx        # Nginx + frontend static files
-│   └── nginx.conf              # Reverse proxy config
+├── config/                      # Configuration by usage mode
+│   ├── cli/                    # CLI standalone configuration
+│   │   ├── .env                # Environment variables for CLI
+│   │   ├── .env.example        # Example configuration
+│   │   └── README.md           # CLI setup instructions
+│   ├── local-dev/              # Local development configuration
+│   │   ├── .env                # Shared by Flask + Vite dev server
+│   │   ├── .env.example        # Example configuration
+│   │   └── README.md           # Local dev setup instructions
+│   ├── docker-prod/            # Docker production configuration
+│   │   ├── .env                # User-facing Docker settings
+│   │   ├── .env.example        # Example configuration
+│   │   ├── docker-compose.yml  # Production deployment
+│   │   └── README.md           # Docker prod setup instructions
+│   └── docker-dev/             # Docker development configuration
+│       ├── .env                # Docker dev settings
+│       ├── .env.example        # Example configuration
+│       ├── docker-compose.yml  # Development with hot reload
+│       └── README.md           # Docker dev setup instructions
+├── deployment/                  # Shared build artifacts
+│   ├── Dockerfile.backend      # Flask backend container
+│   ├── Dockerfile.frontend-prod # Nginx + built frontend
+│   ├── Dockerfile.frontend-dev # Vite dev server container
+│   ├── nginx.conf              # Nginx reverse proxy config
+│   └── README.md               # Dockerfile documentation
 ├── data/                        # Configuration and files
 │   ├── presets.yaml            # Filter presets (camp_basic, drinking_water, etc.)
 │   ├── input/                  # GPX files (mounted in Docker)
@@ -182,13 +199,55 @@ track_line = LineString(track_points_m)  # EPSG:3857
 - **Client-side GPX parsing**: Browser DOMParser reads GPX immediately for instant visualization
 - **LocalStorage persistence**: Tile layer preference saved across sessions
 
-## Configuration Hierarchy (Highest → Lowest)
+## Configuration System
+
+### Configuration by Usage Mode
+
+Each usage mode has its own isolated configuration directory in `config/`:
+
+- **config/cli/** - CLI standalone (Python script only)
+- **config/local-dev/** - Local development (Flask + Vite dev server)
+- **config/docker-prod/** - Docker production (Nginx + Flask)
+- **config/docker-dev/** - Docker development (hot reload)
+
+### Configuration Loading
+
+**CLI (cli/main.py):**
+```python
+load_dotenv('config/cli/.env')  # Loads ONLY config/cli/.env
+config = load_cli_config(args)  # Builds dict + applies CLI args
+```
+
+**Local Dev Flask (backend/api/app.py):**
+```python
+load_dotenv('config/local-dev/.env')  # Loads ONLY config/local-dev/.env
+APP_CONFIG = load_config_from_env()  # Pure env vars
+```
+
+**Local Dev Vite (frontend/vite.config.ts):**
+```typescript
+// Loads: config/local-dev/.env → frontend/.env.local → process.env
+const localDevEnv = dotenv.config({ path: '../config/local-dev/.env' })
+const personalEnv = dotenv.config({ path: '.env.local' })
+const env = { ...localDevEnv, ...personalEnv, ...process.env }
+```
+
+**Docker (config/docker-{prod,dev}/docker-compose.yml):**
+```yaml
+env_file:
+  - .env  # Loads config/docker-prod/.env or config/docker-dev/.env
+```
+
+### Configuration Hierarchy (Highest → Lowest)
 
 1. **Runtime arguments** (CLI flags or API form parameters)
-2. **Environment variables** (e.g., `ALONGGPX_RADIUS_KM=5`)
-3. **Built-in defaults** (hardcoded in backend/core/config.py)
+2. **Environment variables from mode-specific .env** (e.g., `config/cli/.env`)
+3. **Built-in defaults** (hardcoded in app.py or cli/main.py)
 
-**Important**: When ANY CLI/API filter args provided (`preset`, `include`, `exclude`), environment variable defaults are completely ignored (not merged) - see [presets.py](../backend/core/presets.py).
+**Important**: 
+- No config sharing between modes - each has complete configuration
+- When ANY CLI/API filter args provided (`preset`, `include`, `exclude`), environment variable defaults are completely ignored (not merged) - see [presets.py](../backend/core/presets.py)
+- Personal overrides: `frontend/.env.local` (git-ignored) overrides `config/local-dev/.env`
 
 ## Development Workflows
 

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def load_cli_config(args) -> dict:
     """
-    Load CLI configuration from cli/.env file and apply CLI argument overrides.
+    Load CLI configuration from config/cli/.env file and apply CLI argument overrides.
     
     Args:
         args: Parsed CLI arguments from argparse
@@ -28,9 +28,9 @@ def load_cli_config(args) -> dict:
     Returns:
         dict: Complete configuration dictionary
     """
-    # Load cli/.env file (must be in cli/ directory)
-    cli_dir = os.path.dirname(os.path.abspath(__file__))
-    env_path = os.path.join(cli_dir, '.env')
+    # Load config/cli/.env file
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(repo_root, 'config', 'cli', '.env')
     
     if os.path.exists(env_path):
         load_dotenv(env_path)
@@ -113,8 +113,7 @@ def load_cli_config(args) -> dict:
     if config['search']['step_km'] is None:
         config['search']['step_km'] = config['search']['radius_km'] * 0.6
     
-    # Resolve relative paths to absolute (relative to repo root, parent of cli/)
-    repo_root = os.path.dirname(cli_dir)
+    # Resolve relative paths to absolute (relative to repo root, already calculated above)
     config['project']['output_path'] = os.path.abspath(
         os.path.join(repo_root, config['project']['output_path'])
     )

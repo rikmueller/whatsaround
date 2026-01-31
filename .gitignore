@@ -39,8 +39,14 @@ data/output/!example*.html
 *.log
 
 # Environment files (contain secrets/config)
+config/cli/.env
+config/local-dev/.env
+config/docker-prod/.env
+config/docker-dev/.env
+frontend/.env.local
+
+# Legacy paths (kept for backwards compatibility)
 cli/.env
 deployment/.env
 frontend/.env
-frontend/.env.local
 config/.env

@@ -1,21 +1,27 @@
+# ==============================================================================
+# DOCKER DEVELOPMENT DEPLOYMENT
+# ==============================================================================
+# Hot reload for both frontend and backend during development
+# ==============================================================================
+
 services:
   # Flask backend API
   app:
     build:
-      context: ..
-      dockerfile: deployment/Dockerfile
+      context: ../..
+      dockerfile: deployment/Dockerfile.backend
     container_name: alonggpx-backend-dev
     ports:
       - "5000:5000"
     env_file:
-      - .env  # Load from deployment/.env
+      - .env  # Load from config/docker-dev/.env
     environment:
       # Fixed configuration for Docker deployment
       - FLASK_PORT=5000
       - FLASK_ENV=development
       - ALONGGPX_OUTPUT_PATH=/app/data/output
       - ALONGGPX_PRESETS_FILE=/app/data/presets.yaml
-      # Overpass API defaults (don´t change unless you know what you´re doing)
+      # Overpass API defaults (don't change unless you know what you're doing)
       - ALONGGPX_OVERPASS_RETRIES=3
       - ALONGGPX_BATCH_KM=50
       - ALONGGPX_STEP_KM=
@@ -30,19 +36,19 @@ services:
       - ALONGGPX_DEFAULT_MARKER_COLOR=gray
       - ALONGGPX_MARKER_COLOR_PALETTE=orange;purple;green;blue;darkred;darkblue;darkgreen;cadetblue;pink
     volumes:
-      - ../cli:/app/cli
-      - ../backend:/app/backend
-      - ../data/presets.yaml:/app/data/presets.yaml:ro
-      - ../data/input:/app/data/input:ro
-      - ../data/output:/app/data/output:rw
+      - ../../cli:/app/cli
+      - ../../backend:/app/backend
+      - ../../data/presets.yaml:/app/data/presets.yaml:ro
+      - ../../data/input:/app/data/input:ro
+      - ../../data/output:/app/data/output:rw
     restart: unless-stopped
     command: python backend/api/app.py
 
   # React frontend (with hot reload)
   frontend:
     build:
-      context: ..
-      dockerfile: frontend/Dockerfile.dev
+      context: ../..
+      dockerfile: deployment/Dockerfile.frontend-dev
     container_name: alonggpx-frontend-dev
     ports:
       - "3000:3000"
@@ -52,11 +58,11 @@ services:
       - VITE_BACKEND_URL=http://app:5000
       - ALONGGPX_HOSTNAME=${ALONGGPX_HOSTNAME:-localhost}
     volumes:
-      - ../frontend/src:/app/frontend/src
-      - ../frontend/index.html:/app/frontend/index.html
-      - ../frontend/vite.config.ts:/app/frontend/vite.config.ts
-      - ../frontend/tsconfig.json:/app/frontend/tsconfig.json
-      - ../frontend/tsconfig.node.json:/app/frontend/tsconfig.node.json
+      - ../../frontend/src:/app/frontend/src
+      - ../../frontend/index.html:/app/frontend/index.html
+      - ../../frontend/vite.config.ts:/app/frontend/vite.config.ts
+      - ../../frontend/tsconfig.json:/app/frontend/tsconfig.json
+      - ../../frontend/tsconfig.node.json:/app/frontend/tsconfig.node.json
     depends_on:
       - app
     restart: unless-stopped
