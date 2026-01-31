@@ -92,9 +92,7 @@ export default function PresetSelectionModal({ open, selected, presetsDetail, on
                     checked={selection.includes(id)}
                     onChange={() => toggle(id)}
                   />
-                  <div className="preset-info">
-                    <div className="preset-name">{detail.name || id}</div>
-                  </div>
+                  <span>{detail.name || id}</span>
                 </label>
               ))}
             </div>
