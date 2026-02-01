@@ -1,6 +1,7 @@
 # AlongGPX
 
 **Find OpenStreetMap POIs along your GPX tracks. Plan smarter: campsites, water sources, shelters, restaurants—everything you need along your route.**
+
 **🌐 Try it online: [along-gpx.de](https://along-gpx.de)**
 
 ---
@@ -30,9 +31,7 @@ Build your own using OpenStreetMap tags (e.g., `amenity=restaurant`, `shop=bicyc
 ### 3. Generate Results
 
 - Set your search radius (1-50 km from track)
-- Click **Generate Results**
-- Watch POIs appear on the map in real-time
-- Download Excel spreadsheet or interactive HTML map
+- Click **Process**
 
 ### 4. Explore Results
 
@@ -42,6 +41,15 @@ Build your own using OpenStreetMap tags (e.g., `amenity=restaurant`, `shop=bicyc
 - **Mobile-friendly** - Works on phones and tablets
 
 ---
+
+## ⚠️ Development Status
+
+This project is under active development. Features and APIs may change. Documentation may lag behind implementation. Use at your own risk for production workloads.
+
+**Current focus:** Stabilizing Docker deployment and improving UI/UX.
+
+---
+
 
 ## 🚀 Getting Started
 
@@ -156,14 +164,7 @@ AlongGPX/
 
 ## ⚙️ Configuration
 
-AlongGPX is configured via environment variables. See respective configuration directories for available options:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ALONGGPX_RADIUS_KM` | `5` | Search radius around track (km) |
-| `ALONGGPX_BATCH_KM` | `50` | Track distance per Overpass query |
-| `ALONGGPX_TIMEZONE` | `UTC` | Timezone for output timestamps |
-| `ALONGGPX_PROJECT_NAME` | `AlongGPX` | Default project name |
+AlongGPX is configured via environment variables. See respective configuration directories for available options.
 
 **Filter presets** are defined in [data/presets.yaml](data/presets.yaml). Add your own!
 
@@ -190,21 +191,8 @@ Contributions welcome! Please open an issue first to discuss major changes.
 
 ```bash
 # Clone repository
-git clone https://github.com/rikmueller/alonggpx.git
-
-# Option 1: Local development (fastest iteration)
-cd alonggpx
-python3 backend/api/app.py &
-cd frontend && npm install && npm run dev
-
-# Option 2: Docker development (matches production)
-cd config/docker-dev
-cp .env.example .env
-docker compose up
+git clone https://github.com/rikmueller/along-gpx.git
 ```
-
-See [config/local-dev/README.md](config/local-dev/README.md) or [config/docker-dev/README.md](config/docker-dev/README.md) for detailed setup instructions.
-
 ---
 
 ## 📜 License
@@ -227,11 +215,5 @@ Built with amazing open-source projects:
 
 Inspired by **[GPX Studio](https://gpx.studio/)** ❤️
 
----
 
-## ⚠️ Development Status
-
-This project is under active development. Features and APIs may change. Documentation may lag behind implementation. Use at your own risk for production workloads.
-
-**Current focus:** Stabilizing Docker deployment and improving UI/UX.
 
