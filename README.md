@@ -1,19 +1,9 @@
 # AlongGPX
 
 **Find OpenStreetMap POIs along your GPX tracks. Plan smarter: campsites, water sources, shelters, restaurants—everything you need along your route.**
-
-<div align="center">
-
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://github.com/rikmueller/alonggpx/pkgs/container/alonggpx)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
 **🌐 Try it online: [along-gpx.de](https://along-gpx.de)**
 
-</div>
-
 ---
-
-## 💡 How to Use
 
 ## 💡 How to Use
 
