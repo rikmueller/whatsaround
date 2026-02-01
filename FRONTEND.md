@@ -6,21 +6,21 @@ This document describes the new web frontend for AlongGPX and how it integrates 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Docker Containers                            │
-│                                                                      │
+│                         Docker Containers                           │
+│                                                                     │
 │  ┌──────────────────┐              ┌──────────────────┐             │
 │  │   Frontend       │              │   Backend API    │             │
 │  │   (React/Vite)   │──────────→   │   (Flask)        │             │
 │  │   :3000          │              │   :5000          │             │
 │  └──────────────────┘              └──────────────────┘             │
-│                                            │                         │
-│                                            ↓                         │
-│                                    ┌────────────────┐                │
-│                                    │ AlongGPX Core  │                │
-│                                    │   Pipeline     │                │
-│                                    └────────────────┘                │
-│                                            │                         │
-│                                            ↓                         │
+│                                            │                        │
+│                                            ↓                        │
+│                                    ┌────────────────┐               │
+│                                    │ AlongGPX Core  │               │
+│                                    │   Pipeline     │               │
+│                                    └────────────────┘               │
+│                                            │                        │
+│                                            ↓                        │
 │                                  ┌──────────────────┐               │
 │                                  │   Overpass API   │               │
 │                                  │   OSM Data       │               │
@@ -180,44 +180,6 @@ The DevApp provides a **map-first interface** where users see their GPX track im
    - "Reset" button to clear and try again
    - User can adjust settings without re-uploading
 
-## Running Locally
-
-### Option 1: Local Dev (npm + Flask side-by-side)
-
-**Terminal 1 - Backend:**
-```bash
-cd /home/rik/AlongGPX
-python3 backend/api/app.py
-```
-Flask listens on http://localhost:5000
-
-**Terminal 2 - Frontend:**
-```bash
-cd /home/rik/AlongGPX/frontend
-npm install
-npm run dev
-```
-Vite listens on http://localhost:3000
-Proxies `/api/*` to http://localhost:5000
-
-### Option 2: Docker Compose (Production-like)
-
-**Development with hot reload:**
-```bash
-cd /home/rik/AlongGPX/deployment
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-```
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
-
-**Production build:**
-```bash
-cd /home/rik/AlongGPX/deployment
-docker-compose up
-```
-- Frontend serves static build: http://localhost:3000
-- Backend API: http://localhost:5000
-
 ## Styling & Design System
 
 ### CSS Variables (in `src/index.css`)
@@ -240,11 +202,6 @@ docker-compose up
 1. Edit `data/presets.yaml` with new include/exclude filters
 2. Restart backend or reload page → dropdown auto-populates
 
-### Adding a Filter Type
-1. Update `/api/config` response in `backend/api/app.py`
-2. Add input field in `SettingsForm.tsx`
-3. Pass via `/api/process` form data
-
 ### Custom Map Styling
 1. Edit `backend/core/folium_map.py`: marker colors, zoom, track line style
 2. Redeploy
@@ -266,12 +223,3 @@ docker-compose up
 - Long-running Overpass queries or dense regions slow things down
 - Increase `ALONGGPX_BATCH_KM` environment variable to reduce API calls
 
-## Future Enhancements
-
-- [ ] Real-time activity logs (WebSocket instead of polling)
-- [ ] Job history & re-run capability
-- [ ] Map preview before download (embed Folium viewer)
-- [ ] User authentication & project management
-- [ ] Batch processing (multiple GPX files)
-- [ ] Advanced filter builder UI
-- [ ] Dark mode toggle
