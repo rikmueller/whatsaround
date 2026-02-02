@@ -659,9 +659,11 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
               <Tooltip direction="top" offset={[0, -20]} opacity={0.95}>
                 <div>
                   <strong>{poi.name}</strong>
-                  <div style={{ fontSize: '0.9em', marginTop: '2px' }}>
-                    {poi.kilometersFromStart?.toFixed(1)} km from start
-                  </div>
+                  {inputMode === 'track' && (
+                    <div style={{ fontSize: '0.9em', marginTop: '2px' }}>
+                      {poi.kilometersFromStart?.toFixed(1)} km from start
+                    </div>
+                  )}
                   <div style={{ fontSize: '0.8em', marginTop: '4px', fontStyle: 'italic', opacity: 0.8 }}>
                     Click for more details
                   </div>
@@ -677,9 +679,11 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
                       <strong>Filter:</strong> {poi.matchingFilter}
                     </div>
                   )}
-                  <div style={{ marginBottom: '4px' }}>
-                    <strong>Distance from start:</strong> {poi.kilometersFromStart?.toFixed(1)} km
-                  </div>
+                  {inputMode === 'track' && (
+                    <div style={{ marginBottom: '4px' }}>
+                      <strong>Distance from start:</strong> {poi.kilometersFromStart?.toFixed(1)} km
+                    </div>
+                  )}
                   <div style={{ marginBottom: '4px' }}>
                     <strong>Distance from track:</strong> {poi.distanceKm?.toFixed(2)} km
                   </div>
