@@ -265,7 +265,7 @@ function DevApp() {
       // On mobile, close settings panel so user can see the map and marker
       if (window.innerWidth < 992) {
         setSheetOpen(false)
-        setNotification('Please place the marker in the desired position and open the settings again.')
+        setNotification('Please place the marker at the desired position and open the settings again.')
         // Auto-dismiss notification after 4 seconds
         const timer = setTimeout(() => setNotification(null), 4000)
         return () => clearTimeout(timer)

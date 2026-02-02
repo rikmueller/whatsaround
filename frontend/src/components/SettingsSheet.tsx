@@ -223,35 +223,30 @@ export default function SettingsSheet({
               <span className="slider-value">{settings.radiusKm} km</span>
             </div>
           </div>
-          
-        </section>
-
-        {/* Input Mode Segmented Control */}
-        <section className="sheet-section">
-          <div className="section-head">
-            <h3>Input Mode</h3>
-          </div>
-          <div className="segmented-control">
-            <button
-              className={`segmented-option ${inputMode === 'track' ? 'active' : ''}`}
-              onClick={() => {
-                if (inputMode !== 'track') {
-                  onToggleMarkerMode()
-                }
-              }}
-            >
-              GPX Track
-            </button>
-            <button
-              className={`segmented-option ${inputMode === 'marker' ? 'active' : ''}`}
-              onClick={() => {
-                if (inputMode !== 'marker') {
-                  onToggleMarkerMode()
-                }
-              }}
-            >
-              Map Marker
-            </button>
+          <div className="field field-inline">
+            <label>Input mode</label>
+            <div className="segmented-control">
+              <button
+                className={`segmented-option ${inputMode === 'track' ? 'active' : ''}`}
+                onClick={() => {
+                  if (inputMode !== 'track') {
+                    onToggleMarkerMode()
+                  }
+                }}
+              >
+                GPX Track
+              </button>
+              <button
+                className={`segmented-option ${inputMode === 'marker' ? 'active' : ''}`}
+                onClick={() => {
+                  if (inputMode !== 'marker') {
+                    onToggleMarkerMode()
+                  }
+                }}
+              >
+                Map Marker
+              </button>
+            </div>
           </div>
         </section>
 
@@ -313,9 +308,9 @@ export default function SettingsSheet({
               <span className="muted">No marker placed</span>
             )}
           </div>
-          <div style={{ padding: '1rem', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
-            <p style={{ margin: 0 }}>
-              Click on the map to place a marker, or drag the marker to reposition it.
+          <div className="instruction-tile">
+            <p>
+              Place the marker on the desired position on the map.
             </p>
           </div>
         </section>
