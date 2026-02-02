@@ -218,6 +218,9 @@ function DevApp() {
       const trackPoints = await parseGPXFile(file)
       setTrackData(trackPoints)
       setMarkerPosition(null) // Clear marker when track uploaded
+      setPoiData([]) // Clear POIs from previous run
+      setJobStatus(null) // Reset job status
+      setJobId(null) // Clear job ID
       setInputMode('track')
       setError(null) // Clear any previous errors
     } catch (err) {
@@ -243,6 +246,9 @@ function DevApp() {
 
   const handleClearMarker = () => {
     setMarkerPosition(null)
+    setPoiData([]) // Clear POIs from previous run
+    setJobStatus(null) // Reset job status
+    setJobId(null) // Clear job ID
     setInputMode('track')
   }
 
@@ -251,6 +257,9 @@ function DevApp() {
       // Disable marker mode - clear marker and track, switch to track mode
       setMarkerPosition(null)
       setTrackData([])
+      setPoiData([]) // Clear POIs from previous run
+      setJobStatus(null) // Reset job status
+      setJobId(null) // Clear job ID
       setInputMode('track')
       setError(null)
     } else {
@@ -259,6 +268,9 @@ function DevApp() {
       setMarkerPosition(null) // Will be set by InteractiveMap based on current map center
       setTrackData([])
       setUploadedFile(null)
+      setPoiData([]) // Clear POIs from previous run
+      setJobStatus(null) // Reset job status
+      setJobId(null) // Clear job ID
       setInputMode('marker')
       setError(null)
       
@@ -298,6 +310,7 @@ function DevApp() {
 
     try {
       setError(null)
+      setJobStatus(null) // Reset job status when starting new processing
       setPoiData([]) // Clear only POIs, keep track visible
 
       const result = await apiClient.startProcessing(
@@ -400,8 +413,15 @@ function DevApp() {
       const remainingPresets = settings.presets.filter((p) => !presetsToRemove.includes(p))
       
       // Get current manual filters (not from any preset)
-      const allPresetFilters = Object.values(presetsDetail).flatMap((p) => p?.include || [])
-      const currentManualFilters = settings.includes.filter((f) => !allPresetFilters.includes(f))
+      const allPresetIncludeFilters = Object.values(presetsDetail).flatMap((p) => p?.include || [])
+      const allPresetExcludeFilters = Object.values(presetsDetail).flatMap((p) => p?.exclude || [])
+      const currentManualIncludes = settings.includes.filter((f) => !allPresetIncludeFilters.includes(f))
+      const currentManualExcludes = settings.excludes.filter((f) => !allPresetExcludeFilters.includes(f))
+      
+      // Get exclude filters from removed presets that should be kept as manual
+      const excludeFiltersFromRemovedPresets = presetsToRemove.flatMap(
+        (p) => presetsDetail[p]?.exclude || []
+      )
       
       // Recalculate with remaining presets, keeping other filters from removed preset as manual
       const includesFromRemainingPresets = remainingPresets.flatMap(
@@ -414,8 +434,8 @@ function DevApp() {
       setSettings((prev) => ({
         ...prev,
         presets: remainingPresets,
-        includes: Array.from(new Set([...currentManualFilters, ...filtersFromRemovedPresets, ...includesFromRemainingPresets])),
-        excludes: Array.from(new Set([...prev.excludes.filter((f) => !allPresetFilters.includes(f)), ...excludesFromRemainingPresets])),
+        includes: Array.from(new Set([...currentManualIncludes, ...filtersFromRemovedPresets, ...includesFromRemainingPresets])),
+        excludes: Array.from(new Set([...currentManualExcludes, ...excludesFromRemainingPresets])),
       }))
     } else {
       // Filter was manually added, just remove it

@@ -32,7 +32,7 @@ services:
       # Map defaults
       - ALONGGPX_TRACK_COLOR=blue
       - ALONGGPX_DEFAULT_MARKER_COLOR=gray
-      - ALONGGPX_MARKER_COLOR_PALETTE=orange;purple;green;blue;darkred;darkblue;darkgreen;cadetblue;pink
+      - ALONGGPX_MARKER_COLOR_PALETTE=orange;purple;blue;darkred;darkblue;darkgreen;cadetblue;pink
     volumes:
       # GPX input files (mount local data/input directory)
       - ../../data/input:/app/data/input:ro

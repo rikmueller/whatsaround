@@ -92,32 +92,49 @@ function createColoredIcon(color: string, fallback: string) {
 
 function createStartStopIcon(type: 'start' | 'end') {
   const isStart = type === 'start'
-  const color = isStart ? '#16a34a' : '#dc2626'
+  const color = isStart ? 'green' : 'red'
+  const markerColor = normalizeMarkerColor(color, 'blue')
+  // Use hex colors to cover the white dot
+  const bgColor = isStart ? '#16a34a' : '#dc2626'
   const Icon = isStart ? Play : Square
-  const iconMarkup = renderToStaticMarkup(<Icon size={14} strokeWidth={2.5} fill="white" stroke="white" />)
+  const iconSize = 14
+  // Slight left adjustment for stop icon
+  const leftPos = isStart ? '50%' : 'calc(50% - 0.25px)'
+  const iconMarkup = renderToStaticMarkup(<Icon size={iconSize} strokeWidth={2.5} fill="white" stroke="white" />)
   
   return L.divIcon({
-    className: 'start-stop-icon',
+    className: 'start-stop-pin-icon',
     html: `
-      <div style="
-        position: relative;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        background: ${color};
-        border: 2px solid #ffffff;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        ${iconMarkup}
+      <div style="position: relative; width: 25px; height: 41px;">
+        <img 
+          src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" 
+          style="width: 25px; height: 41px; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
+        />
+        <div style="
+          position: absolute;
+          top: 13px;
+          left: ${leftPos};
+          transform: translate(-50%, -50%);
+          width: 18px;
+          height: 18px;
+          background: ${bgColor};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ${iconMarkup}
+        </div>
       </div>
+      <img 
+        src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png" 
+        style="position: absolute; left: 0; top: 0; width: 41px; height: 41px; z-index: -1;"
+      />
     `,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -14],
-    tooltipAnchor: [0, -14],
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
   })
 }
 
@@ -482,28 +499,48 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
 
   // Create marker icon using track color
   const markerIcon = useMemo(() => {
-    // Map track color to supported marker color
-    const colorMap: Record<string, string> = {
-      '#2563eb': 'blue',
-      '#dc2626': 'red',
-      '#16a34a': 'green',
-      '#ea580c': 'orange',
-      '#f59e0b': 'gold',
-      '#eab308': 'yellow',
-      '#8b5cf6': 'violet',
-      '#6b7280': 'grey',
-      'blue': 'blue',
-      'red': 'red',
-      'green': 'green',
-      'orange': 'orange',
-      'gold': 'gold',
-      'yellow': 'yellow',
-      'violet': 'violet',
-      'grey': 'grey',
-    }
-    const markerColor = colorMap[trackColor.toLowerCase()] || 'blue'
-    return createColoredIcon(markerColor, 'blue')
-  }, [trackColor])
+    // Use same design as start pin - green with Play icon
+    const color = 'green'
+    const markerColor = normalizeMarkerColor(color, 'blue')
+    const bgColor = '#16a34a'
+    const iconSize = 14
+    const iconMarkup = renderToStaticMarkup(<Play size={iconSize} strokeWidth={2.5} fill="white" stroke="white" />)
+    
+    return L.divIcon({
+      className: 'search-marker-icon',
+      html: `
+        <div style="position: relative; width: 25px; height: 41px;">
+          <img 
+            src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" 
+            style="width: 25px; height: 41px; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;"
+          />
+          <div style="
+            position: absolute;
+            top: 13px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            background: ${bgColor};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            ${iconMarkup}
+          </div>
+        </div>
+        <img 
+          src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png" 
+          style="position: absolute; left: 0; top: 0; width: 41px; height: 41px; z-index: -1;"
+        />
+      `,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    })
+  }, [])
 
   // Load color palette and track color from config on mount
   useEffect(() => {
