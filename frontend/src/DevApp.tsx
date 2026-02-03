@@ -291,7 +291,7 @@ function DevApp() {
     // Validate input based on mode
     if (inputMode === 'track') {
       if (!uploadedFile) {
-        setError('Please upload a GPX file')
+        setError('Please upload a GPX file or switch to Map Marker mode')
         return
       }
     } else if (inputMode === 'marker') {
