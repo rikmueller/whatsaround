@@ -30,7 +30,6 @@ type Props = {
   onDeletePreset: (preset: string) => void
   onDeleteIncludeFilter: (filter: string) => void
   onDeleteExcludeFilter: (filter: string) => void
-  onOpenHelp: () => void
   shouldPulseFab?: boolean
   onFabClick?: () => void
 }
