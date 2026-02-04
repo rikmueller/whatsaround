@@ -1,0 +1,10 @@
+# WhatsAround robots.txt
+# Allow search engines to crawl the site, but disallow API endpoints
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /socket.io/
+
+# Sitemap location
+Sitemap: https://getwhatsaround.app/sitemap.xml
