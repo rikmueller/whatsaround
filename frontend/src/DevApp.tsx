@@ -363,7 +363,6 @@ function DevApp() {
     try {
       const trackPoints = await parseGPXFile(file)
       setTrackData(trackPoints)
-      setMarkerPosition(null) // Clear marker when track uploaded
       setPoiData([]) // Clear POIs from previous run
       setJobStatus(null) // Reset job status
       setJobId(null) // Clear job ID
@@ -383,8 +382,6 @@ function DevApp() {
   const handleMarkerChange = (position: [number, number] | null) => {
     setMarkerPosition(position)
     if (position) {
-      setTrackData([]) // Clear track when marker placed
-      setUploadedFile(null)
       setInputMode('marker')
       setError(null)
     }
@@ -395,25 +392,19 @@ function DevApp() {
     setPoiData([]) // Clear POIs from previous run
     setJobStatus(null) // Reset job status
     setJobId(null) // Clear job ID
-    setInputMode('track')
   }
 
   const handleToggleMarkerMode = () => {
     if (inputMode === 'marker') {
-      // Disable marker mode - clear marker and track, switch to track mode
-      setMarkerPosition(null)
-      setTrackData([])
+      // Disable marker mode - switch to track mode
       setPoiData([]) // Clear POIs from previous run
       setJobStatus(null) // Reset job status
       setJobId(null) // Clear job ID
       setInputMode('track')
       setError(null)
     } else {
-      // Enable marker mode - switch to marker mode (marker position will be set by map center)
-      // Clear track and uploaded file
-      setMarkerPosition(null) // Will be set by InteractiveMap based on current map center
-      setTrackData([])
-      setUploadedFile(null)
+      // Enable marker mode - switch to marker mode, marker is set by user click
+      // Keep existing track and marker data for quick mode switching
       setPoiData([]) // Clear POIs from previous run
       setJobStatus(null) // Reset job status
       setJobId(null) // Clear job ID
@@ -459,14 +450,16 @@ function DevApp() {
       setJobStatus(null) // Reset job status when starting new processing
       setPoiData([]) // Clear only POIs, keep track visible
 
+      const fileToSend = inputMode === 'track' ? uploadedFile : null
+      const markerToSend = inputMode === 'marker' ? markerPosition : null
       const result = await apiClient.startProcessing(
-        uploadedFile,
+        fileToSend,
         settings.projectName,
         settings.radiusKm,
         settings.includes,
         settings.excludes,
         settings.presets,
-        markerPosition,
+        markerToSend,
       )
 
       setJobId(result.job_id)
@@ -644,12 +637,12 @@ function DevApp() {
       {notification && (
         <div style={{
           position: 'fixed',
-          top: '52%',
+          top: '50%',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: 'translate(-50%, -50%)',
           background: 'white',
           color: '#1f2937',
-          padding: '12px 16px',
+          padding: '0',
           borderRadius: '8px',
           fontSize: '14px',
           zIndex: 170,
@@ -661,9 +654,9 @@ function DevApp() {
         </div>
       )}
       <InteractiveMap
-        track={trackData}
+        track={inputMode === 'track' ? trackData : []}
         pois={poiData}
-        markerPosition={markerPosition}
+        markerPosition={inputMode === 'marker' ? markerPosition : null}
         onMarkerChange={handleMarkerChange}
         inputMode={inputMode}
         tileSource={tileSource}

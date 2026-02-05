@@ -341,8 +341,8 @@ export default function SettingsSheet({
               {markerPosition 
                 ? status 
                   ? 'Marking is locked, clear coordinates to reset.'
-                  : 'Marker is set on map, change position by dragging.'
-                : 'Click the map to place a marker at the desired position.'}
+                  : 'Marker is set, click on the map to change it'
+                : 'Click the map to place a marker.'}
             </p>
           </div>
         </section>

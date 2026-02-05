@@ -269,28 +269,31 @@ function computePadding() {
   return { padTop, padLeft, padRight, padBottom, occLeft, occRight }
 }
 
-function FitBounds({ track, pois, skipAutoFit }: { track: [number, number][]; pois: MapPoi[]; skipAutoFit: boolean }) {
+function FitBounds({ track, pois, markerPosition, skipAutoFit }: { track: [number, number][]; pois: MapPoi[]; markerPosition: [number, number] | null; skipAutoFit: boolean }) {
   const map = useMap()
 
   const userMovedRef = useRef(false)
   const lastSigRef = useRef('')
+  const checkedRestorationRef = useRef(false)
 
   const signature = useMemo(() => {
     const tLen = track.length
     const pLen = pois.length
-    if (!tLen && !pLen) return ''
+    const markerSig = markerPosition ? markerPosition.join(',') : ''
+    if (!tLen && !pLen && !markerSig) return ''
     const tFirst = tLen ? track[0] : []
     const tLast = tLen ? track[tLen - 1] : []
     const pFirst = pLen ? pois[0].coords : []
     const pLast = pLen ? pois[pLen - 1].coords : []
-    return `${tLen}:${tFirst?.join(',')}:${tLast?.join(',')}:${pLen}:${pFirst?.join(',')}:${pLast?.join(',')}`
-  }, [track, pois])
+    return `${tLen}:${tFirst?.join(',')}:${tLast?.join(',')}:${pLen}:${pFirst?.join(',')}:${pLast?.join(',')}:${markerSig}`
+  }, [track, pois, markerPosition])
 
   const refit = (opts?: { force?: boolean }) => {
     if (userMovedRef.current && !opts?.force) return
     const points: [number, number][] = []
     track.forEach(([lon, lat]) => points.push([lat, lon]))
     pois.forEach((p) => points.push([p.coords[1], p.coords[0]]))
+    if (markerPosition) points.push([markerPosition[0], markerPosition[1]])
     if (!points.length) return
     const bounds = L.latLngBounds(points as L.LatLngExpression[])
     
@@ -317,17 +320,26 @@ function FitBounds({ track, pois, skipAutoFit }: { track: [number, number][]; po
   }
 
   useEffect(() => {
-    if (skipAutoFit && signature && !lastSigRef.current) {
-      userMovedRef.current = true
-      lastSigRef.current = signature
+    // On first run, check if we have a saved view that matches current data
+    if (!checkedRestorationRef.current && signature) {
+      checkedRestorationRef.current = true
+      const savedSig = loadMapSignature()
+      if (savedSig && savedSig === signature) {
+        // We have a saved view that matches - don't refit, let MapViewPersistence restore
+        lastSigRef.current = signature
+        userMovedRef.current = true // Treat as user-positioned
+        return
+      }
     }
+    
     // Reset user interaction flag when data is cleared (reset case)
     if (!signature && lastSigRef.current) {
       userMovedRef.current = false
       lastSigRef.current = ''
+      return
     }
     
-    // Fit only when a new track/POI data arrives
+    // Fit when signature changes (new data, mode switch, or POIs loaded)
     if (signature && signature !== lastSigRef.current) {
       userMovedRef.current = false
       refit({ force: true })
@@ -343,7 +355,7 @@ function FitBounds({ track, pois, skipAutoFit }: { track: [number, number][]; po
       map.off('zoomstart', onZoomStart)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, map, skipAutoFit])
+  }, [signature, map])
   return null
 }
 
@@ -680,21 +692,6 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
     return map
   }, [pois, colorPalette])
 
-  // Helper component to center marker on map when switching to marker mode
-  function MarkerModeSwitchHandler({ onMarkerChange, inputMode, markerPosition }: { onMarkerChange: (pos: [number, number]) => void; inputMode: string; markerPosition: [number, number] | null }) {
-    const map = useMap()
-    
-    useEffect(() => {
-      if (inputMode === 'marker' && markerPosition === null) {
-        // Just switched to marker mode without a marker - place at map center
-        const center = map.getCenter()
-        onMarkerChange([center.lat, center.lng])
-      }
-    }, [inputMode, markerPosition, onMarkerChange, map])
-    
-    return null
-  }
-
   return (
     <div className="map-wrapper">
       <MapContainer
@@ -706,7 +703,6 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
         <TileLayer url={tileSource.url} attribution={tileSource.attribution} />
         <MapClickHandler onMapClick={handleMapClick} />
         <MapViewPersistence signature={mapSignature} onRestored={setRestoredSignature} />
-        <MarkerModeSwitchHandler onMarkerChange={onMarkerChange} inputMode={inputMode} markerPosition={markerPosition} />
         
         {/* User-placed marker (draggable) - only visible in marker mode */}
         {markerPosition && inputMode === 'marker' && (
@@ -823,7 +819,7 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
             </Marker>
           )
         })}
-        <FitBounds track={track} pois={pois} skipAutoFit={skipAutoFit} />
+        <FitBounds track={track} pois={pois} markerPosition={markerPosition} skipAutoFit={skipAutoFit} />
         <ScaleControl />
         <LocateButton />
         <RecenterButton track={track} pois={pois} markerPosition={markerPosition} />
