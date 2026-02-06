@@ -78,7 +78,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    touch-action: none;
+    touch-action: pan-y;
   }
 
   .sheet.open {
@@ -153,8 +153,8 @@
   .sheet-content {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
-    max-height: none;
+    padding: 16px 16px 100px 16px;
+    max-height: none !important;
     touch-action: pan-y; /* Allow vertical scrolling only */
     overscroll-behavior: contain; /* Prevent pull-to-refresh */
   }
@@ -169,10 +169,13 @@
   }
 }
 
-.sheet-content {
-  padding: 6px 10px 10px 10px;
-  overflow-y: auto;
-  max-height: calc(100vh - 32px);
+/* Desktop-only max-height constraint */
+@media (min-width: 992px) {
+  .sheet-content {
+    padding: 6px 10px 10px 10px;
+    overflow-y: auto;
+    max-height: calc(100vh - 32px);
+  }
 }
 
 .sheet-header {
@@ -551,6 +554,30 @@
   flex-shrink: 0;
 }
 
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--wa-bg);
+}
+
+.upload-tile.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .ghost {
   background: transparent;
   border: 1px solid var(--color-border);
@@ -599,6 +626,12 @@
   color: var(--color-primary);
   box-shadow: var(--wa-card-shadow);
   font-weight: 600;
+}
+
+.segmented-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .chip {
@@ -695,6 +728,17 @@
   color: white;
 }
 
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.btn-primary:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .btn-secondary {
   background: transparent;
   color: #64748b;
@@ -705,6 +749,14 @@
   background: #f1f5f9;
   border-color: #475569;
   color: #475569;
+}
+
+.btn-secondary:disabled {
+  background: transparent;
+  color: #cbd5e1;
+  border-color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-disabled {

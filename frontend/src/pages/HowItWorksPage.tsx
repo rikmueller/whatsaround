@@ -123,7 +123,7 @@ export default function HowItWorksPage() {
               <div>
                 <span>Step 4</span>
                 <h4>Run the search</h4>
-                <p>Run the search by hitting the Process button. WhatsAround batches Overpass API queries and streams results as they appear in the App.</p>
+                <p>Run the search by hitting the Search button. WhatsAround batches Overpass API queries and streams results as they appear in the App.</p>
               </div>
               <ChevronDown className="expand-icon" />
             </div>

@@ -32,6 +32,8 @@ type Props = {
   onDeleteExcludeFilter: (filter: string) => void
   shouldPulseFab?: boolean
   onFabClick?: () => void
+  isSearchDisabled?: boolean
+  isSearchRunning?: boolean
 }
 
 export default function SettingsSheet({
@@ -57,6 +59,8 @@ export default function SettingsSheet({
   onDeleteExcludeFilter,
   shouldPulseFab = false,
   onFabClick,
+  isSearchDisabled = false,
+  isSearchRunning = false,
 }: Props) {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -177,8 +181,12 @@ export default function SettingsSheet({
             <button className="btn btn-secondary btn-compact" onClick={onReset}>
               Reset
             </button>
-            <button className="btn btn-primary btn-compact" onClick={onStart}>
-              {status?.state === 'processing' ? 'Processing...' : 'Process'}
+            <button 
+              className="btn btn-primary btn-compact" 
+              onClick={onStart}
+              disabled={status?.state === 'processing' || isSearchDisabled}
+            >
+              {status?.state === 'processing' ? 'Searching...' : 'Search'}
             </button>
             <button
               className="sheet-mobile-close"
@@ -198,8 +206,12 @@ export default function SettingsSheet({
             <button className="btn btn-secondary btn-compact" onClick={onReset}>
               Reset
             </button>
-            <button className="btn btn-primary btn-compact" onClick={onStart}>
-              {status?.state === 'processing' ? 'Processing...' : 'Process'}
+            <button 
+              className="btn btn-primary btn-compact" 
+              onClick={onStart}
+              disabled={status?.state === 'processing' || isSearchDisabled}
+            >
+              {status?.state === 'processing' ? 'Searching...' : 'Search'}
             </button>
           </div>
         </div>
@@ -218,7 +230,7 @@ export default function SettingsSheet({
           <div className="alert alert-error" ref={errorRef}>{error}</div>
         ) : null}
 
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Project Settings</h3>
           </div>
@@ -229,6 +241,7 @@ export default function SettingsSheet({
               value={settings.projectName}
               onChange={(e) => onSettingsChange({ projectName: e.target.value })}
               placeholder="My adventure"
+              disabled={isSearchRunning}
             />
           </div>
           <div className="field field-inline">
@@ -242,6 +255,7 @@ export default function SettingsSheet({
                 step={1}
                 value={settings.radiusKm}
                 onChange={(e) => onSettingsChange({ radiusKm: Number(e.target.value) })}
+                disabled={isSearchRunning}
               />
               <span className="slider-value">{settings.radiusKm} km</span>
             </div>
@@ -251,6 +265,7 @@ export default function SettingsSheet({
             <div className="segmented-control">
               <button
                 className={`segmented-option ${inputMode === 'track' ? 'active' : ''}`}
+                disabled={isSearchRunning}
                 onClick={() => {
                   if (inputMode !== 'track') {
                     onToggleMarkerMode()
@@ -261,6 +276,7 @@ export default function SettingsSheet({
               </button>
               <button
                 className={`segmented-option ${inputMode === 'marker' ? 'active' : ''}`}
+                disabled={isSearchRunning}
                 onClick={() => {
                   if (inputMode !== 'marker') {
                     onToggleMarkerMode()
@@ -274,7 +290,7 @@ export default function SettingsSheet({
         </section>
 
         {inputMode === 'track' && (
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>GPX Track</h3>
             {selectedFile ? (
@@ -285,6 +301,7 @@ export default function SettingsSheet({
                   onClick={() => onFileSelected(null)}
                   aria-label={`Remove ${selectedFile.name}`}
                   title="Remove track"
+                  disabled={isSearchRunning}
                 >
                   ×
                 </button>
@@ -294,16 +311,17 @@ export default function SettingsSheet({
             )}
           </div>
           <label 
-            className={`upload-tile ${dragOver ? 'dragover' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            className={`upload-tile ${dragOver ? 'dragover' : ''} ${isSearchRunning ? 'disabled' : ''}`}
+            onDragOver={isSearchRunning ? undefined : handleDragOver}
+            onDragLeave={isSearchRunning ? undefined : handleDragLeave}
+            onDrop={isSearchRunning ? undefined : handleDrop}
           >
             <input 
               ref={fileInputRef} 
               type="file" 
               accept=".gpx" 
               onChange={handleFileChange}
+              disabled={isSearchRunning}
             />
             <div className="upload-body">
               <div className="upload-icon">^</div>
@@ -317,7 +335,7 @@ export default function SettingsSheet({
         )}
 
         {inputMode === 'marker' && (
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Map Marker</h3>
             {markerPosition ? (
@@ -328,6 +346,7 @@ export default function SettingsSheet({
                   onClick={onClearMarker}
                   aria-label="Clear marker"
                   title="Clear marker"
+                  disabled={isSearchRunning}
                 >
                   ×
                 </button>
@@ -341,17 +360,19 @@ export default function SettingsSheet({
               {markerPosition 
                 ? status 
                   ? 'Marking is locked, clear coordinates to reset.'
-                  : 'Marker is set, click on the map to change it'
+                  : window.innerWidth < 992 
+                    ? 'Marker is set, delete coordinates to change it'
+                    : 'Marker is set, click on the map to change it'
                 : <>Click the map to place a marker. <button className="link-button" onClick={onToggle} title="Close settings to access map">Open map</button></>}
             </p>
           </div>
         </section>
         )}
 
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Presets</h3>
-            <button className="add-btn" onClick={onOpenPresetModal} title="Add presets">
+            <button className="add-btn" onClick={onOpenPresetModal} title="Add presets" disabled={isSearchRunning}>
               +
             </button>
             {settings.presets.length === 0 && <span className="muted">No presets selected</span>}
@@ -365,6 +386,7 @@ export default function SettingsSheet({
                   onClick={() => deletePreset(p)}
                   aria-label={`Delete preset ${p}`}
                   title="Remove preset"
+                  disabled={isSearchRunning}
                 >
                   ×
                 </button>
@@ -373,10 +395,10 @@ export default function SettingsSheet({
           </div>
         </section>
 
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Include filters</h3>
-            <button className="add-btn" onClick={onOpenIncludeModal} title="Add include filters">
+            <button className="add-btn" onClick={onOpenIncludeModal} title="Add include filters" disabled={isSearchRunning}>
               +
             </button>
             {settings.includes.length === 0 && <span className="muted">No include filters</span>}
@@ -390,6 +412,7 @@ export default function SettingsSheet({
                   onClick={() => deleteIncludeFilter(f)}
                   aria-label={`Delete ${f}`}
                   title="Remove filter"
+                  disabled={isSearchRunning}
                 >
                   ×
                 </button>
@@ -398,10 +421,10 @@ export default function SettingsSheet({
           </div>
         </section>
 
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Exclude filters</h3>
-            <button className="add-btn" onClick={onOpenExcludeModal} title="Add exclude filters">
+            <button className="add-btn" onClick={onOpenExcludeModal} title="Add exclude filters" disabled={isSearchRunning}>
               +
             </button>
             {settings.excludes.length === 0 && <span className="muted">No exclude filters</span>}
@@ -415,6 +438,7 @@ export default function SettingsSheet({
                   onClick={() => deleteExcludeFilter(f)}
                   aria-label={`Delete ${f}`}
                   title="Remove filter"
+                  disabled={isSearchRunning}
                 >
                   ×
                 </button>
@@ -423,7 +447,7 @@ export default function SettingsSheet({
           </div>
         </section>
 
-        <section className="sheet-section">
+        <section className="sheet-section" style={{ opacity: isSearchRunning ? 0.5 : 1, pointerEvents: isSearchRunning ? 'none' : 'auto' }}>
           <div className="section-head">
             <h3>Downloads</h3>
             {status?.excel_file || status?.html_file ? (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   apiClient,
   ConfigResponse,
@@ -10,6 +10,7 @@ import InteractiveMap, { MapPoi, TileSource } from './components/InteractiveMap'
 import SettingsSheet from './components/SettingsSheet'
 import PresetSelectionModal from './components/PresetSelectionModal'
 import FilterSelectionModal from './components/FilterSelectionModal'
+import Modal from './components/Modal'
 import SeoMeta from './components/SeoMeta'
 import { useWebSocket } from './hooks/useWebSocket'
 import './DevApp.css'
@@ -43,6 +44,14 @@ const LOCAL_STORAGE_SETTINGS_KEY = 'whatsaround.settings'
 const LOCAL_STORAGE_TRACK_DATA_KEY = 'whatsaround.trackData'
 const LOCAL_STORAGE_MARKER_POSITION_KEY = 'whatsaround.markerPosition'
 const LOCAL_STORAGE_INPUT_MODE_KEY = 'whatsaround.inputMode'
+const LOCAL_STORAGE_TRACK_RESULTS_KEY = 'whatsaround.trackResults'
+const LOCAL_STORAGE_MARKER_RESULTS_KEY = 'whatsaround.markerResults'
+
+type SavedResults = {
+  poiData: MapPoi[]
+  jobStatus: JobStatus | null
+  jobId: string | null
+}
 
 function loadTilePreference(): string {
   if (typeof window === 'undefined') return TILE_SOURCES[0].id
@@ -138,12 +147,44 @@ function saveInputMode(mode: 'track' | 'marker') {
   }
 }
 
+function loadResultsForMode(mode: 'track' | 'marker'): SavedResults | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const key = mode === 'track' ? LOCAL_STORAGE_TRACK_RESULTS_KEY : LOCAL_STORAGE_MARKER_RESULTS_KEY
+    const saved = localStorage.getItem(key)
+    return saved ? JSON.parse(saved) : null
+  } catch (err) {
+    console.warn(`Could not load ${mode} results from localStorage`, err)
+    return null
+  }
+}
+
+function saveResultsForMode(mode: 'track' | 'marker', results: SavedResults) {
+  try {
+    const key = mode === 'track' ? LOCAL_STORAGE_TRACK_RESULTS_KEY : LOCAL_STORAGE_MARKER_RESULTS_KEY
+    localStorage.setItem(key, JSON.stringify(results))
+  } catch (err) {
+    console.warn(`Could not persist ${mode} results`, err)
+  }
+}
+
+function clearResultsForMode(mode: 'track' | 'marker') {
+  try {
+    const key = mode === 'track' ? LOCAL_STORAGE_TRACK_RESULTS_KEY : LOCAL_STORAGE_MARKER_RESULTS_KEY
+    localStorage.removeItem(key)
+  } catch (err) {
+    console.warn(`Could not clear ${mode} results from localStorage`, err)
+  }
+}
+
 function clearPersistedSettings() {
   try {
     localStorage.removeItem(LOCAL_STORAGE_SETTINGS_KEY)
     localStorage.removeItem(LOCAL_STORAGE_TRACK_DATA_KEY)
     localStorage.removeItem(LOCAL_STORAGE_MARKER_POSITION_KEY)
     localStorage.removeItem(LOCAL_STORAGE_INPUT_MODE_KEY)
+    localStorage.removeItem(LOCAL_STORAGE_TRACK_RESULTS_KEY)
+    localStorage.removeItem(LOCAL_STORAGE_MARKER_RESULTS_KEY)
   } catch (err) {
     console.warn('Could not clear persisted settings', err)
   }
@@ -198,22 +239,40 @@ type Settings = {
 
 function DevApp() {
   const [config, setConfig] = useState<ConfigResponse | null>(null)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [notification, setNotification] = useState<string | null>(null)
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [trackData, setTrackData] = useState<[number, number][]>(() => loadTrackData() || [])
-  const [poiData, setPoiData] = useState<MapPoi[]>([])
-  const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(() => loadMarkerPosition())
+  
+  // Initialize input mode first (needed for loading correct results)
   const [inputMode, setInputMode] = useState<'track' | 'marker'>(() => {
     const savedMode = loadInputMode()
     if (savedMode) return savedMode
     return loadMarkerPosition() ? 'marker' : 'track'
   })
+  
+  // Load saved results for initial input mode (read mode from localStorage directly to avoid stale closure)
+  const [jobId, setJobId] = useState<string | null>(() => {
+    const mode = loadInputMode() || (loadMarkerPosition() ? 'marker' : 'track')
+    const results = loadResultsForMode(mode)
+    return results?.jobId || null
+  })
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(() => {
+    const mode = loadInputMode() || (loadMarkerPosition() ? 'marker' : 'track')
+    const results = loadResultsForMode(mode)
+    return results?.jobStatus || null
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [notification, setNotification] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [trackData, setTrackData] = useState<[number, number][]>(() => loadTrackData() || [])
+  const [poiData, setPoiData] = useState<MapPoi[]>(() => {
+    const mode = loadInputMode() || (loadMarkerPosition() ? 'marker' : 'track')
+    const results = loadResultsForMode(mode)
+    return results?.poiData || []
+  })
+  const [lastProcessedSettings, setLastProcessedSettings] = useState<(Settings & { inputMode: 'track' | 'marker', fileName?: string, markerLat?: number, markerLon?: number }) | null>(null)
+  const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(() => loadMarkerPosition())
   const [sheetOpen, setSheetOpen] = useState(() => window.innerWidth >= 992)
   const [tileId, setTileId] = useState<string>(loadTilePreference())
   const [pulseFab, setPulseFab] = useState(() => window.innerWidth < 992)
+  const previousJobState = useRef<JobStatus['state'] | null>(null)
 
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = loadSettings()
@@ -229,6 +288,8 @@ function DevApp() {
   const [presetModalOpen, setPresetModalOpen] = useState(false)
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [filterModalMode, setFilterModalMode] = useState<FilterModalMode>('include')
+  const [confirmSearchModalOpen, setConfirmSearchModalOpen] = useState(false)
+  const [confirmResetModalOpen, setConfirmResetModalOpen] = useState(false)
 
   const fetchGeoJson = useCallback(
     async (id: string) => {
@@ -262,11 +323,19 @@ function DevApp() {
       setJobStatus(job)
       if (job.state === 'completed') {
         fetchGeoJson(job.id)
+        // Save settings snapshot when job completes successfully
+        setLastProcessedSettings({
+          ...settings,
+          inputMode,
+          fileName: uploadedFile?.name,
+          markerLat: markerPosition?.[0],
+          markerLon: markerPosition?.[1],
+        })
       } else if (job.state === 'failed') {
         setError(job.error || 'Processing failed')
       }
     },
-    [fetchGeoJson],
+    [fetchGeoJson, settings, inputMode, uploadedFile, markerPosition],
   )
 
   // WebSocket subscription for live progress
@@ -283,9 +352,15 @@ function DevApp() {
 
   // Close settings sheet on mobile when processing completes
   useEffect(() => {
-    if (jobStatus && jobStatus.state === 'completed' && window.innerWidth < 992) {
+    const prevState = previousJobState.current
+    const justCompleted =
+      (prevState === 'queued' || prevState === 'processing') &&
+      jobStatus?.state === 'completed'
+
+    if (justCompleted && window.innerWidth < 992) {
       setSheetOpen(false)
     }
+    previousJobState.current = jobStatus?.state ?? null
   }, [jobStatus])
 
   // Load config and restore settings from localStorage
@@ -304,6 +379,17 @@ function DevApp() {
             includes: cfg.defaults.include,
             excludes: cfg.defaults.exclude,
           }))
+        }
+        
+        // Restore lastProcessedSettings if results were loaded (happens in state initialization)
+        if (jobStatus?.state === 'completed') {
+          setLastProcessedSettings({
+            ...settings,
+            inputMode,
+            fileName: uploadedFile?.name,
+            markerLat: markerPosition?.[0],
+            markerLon: markerPosition?.[1],
+          })
         }
       } catch (err) {
         setError(`Failed to load config: ${err}`)
@@ -347,6 +433,16 @@ function DevApp() {
     saveInputMode(inputMode)
   }, [inputMode])
 
+  // Auto-save results to localStorage when job completes
+  useEffect(() => {
+    if (jobStatus?.state === 'completed' && poiData.length > 0) {
+      saveResultsForMode(inputMode, { poiData, jobStatus, jobId })
+    } else if (jobStatus?.state === 'failed') {
+      // Clear saved results on error
+      clearResultsForMode(inputMode)
+    }
+  }, [jobStatus, poiData, jobId, inputMode])
+
   const tileSource = useMemo(
     () => TILE_SOURCES.find((t) => t.id === tileId) || TILE_SOURCES[0],
     [tileId]
@@ -354,6 +450,7 @@ function DevApp() {
 
   const handleFileSelected = async (file: File | null) => {
     setUploadedFile(file)
+    setLastProcessedSettings(null) // Clear snapshot when file changes
     if (!file) {
       setTrackData([])
       return
@@ -366,6 +463,7 @@ function DevApp() {
       setPoiData([]) // Clear POIs from previous run
       setJobStatus(null) // Reset job status
       setJobId(null) // Clear job ID
+      clearResultsForMode('track') // Clear saved track results
       setInputMode('track')
       setError(null) // Clear any previous errors
     } catch (err) {
@@ -377,11 +475,18 @@ function DevApp() {
 
   const handleSettingsChange = (changes: Partial<typeof settings>) => {
     setSettings((prev: Settings) => ({ ...prev, ...changes }))
+    setLastProcessedSettings(null) // Clear snapshot when settings change
   }
 
   const handleMarkerChange = (position: [number, number] | null) => {
     setMarkerPosition(position)
+    setLastProcessedSettings(null) // Clear snapshot when marker changes
     if (position) {
+      // Clear marker results when marker position changes
+      setPoiData([]) // Clear POIs from previous run
+      setJobStatus(null) // Reset job status
+      setJobId(null) // Clear job ID
+      clearResultsForMode('marker') // Clear saved marker results
       setInputMode('marker')
       setError(null)
     }
@@ -389,40 +494,69 @@ function DevApp() {
 
   const handleClearMarker = () => {
     setMarkerPosition(null)
+    setLastProcessedSettings(null) // Clear snapshot when marker is cleared
     setPoiData([]) // Clear POIs from previous run
     setJobStatus(null) // Reset job status
     setJobId(null) // Clear job ID
+    clearResultsForMode('marker') // Clear saved marker results
+
+    if (window.innerWidth < 992) {
+      setSheetOpen(false)
+      setNotification('Please place the marker at the desired position and open the settings again.')
+      setTimeout(() => setNotification(null), 5000)
+    }
   }
 
   const handleToggleMarkerMode = () => {
-    if (inputMode === 'marker') {
-      // Disable marker mode - switch to track mode
-      setPoiData([]) // Clear POIs from previous run
-      setJobStatus(null) // Reset job status
-      setJobId(null) // Clear job ID
-      setInputMode('track')
-      setError(null)
+    const oldMode = inputMode
+    const newMode = inputMode === 'marker' ? 'track' : 'marker'
+    
+    // Save current results before switching
+    if (jobStatus?.state === 'completed' && poiData.length > 0) {
+      saveResultsForMode(oldMode, { poiData, jobStatus, jobId })
+    }
+    
+    setLastProcessedSettings(null) // Clear snapshot when input mode changes
+    
+    // Load results for new mode
+    const savedResults = loadResultsForMode(newMode)
+    if (savedResults) {
+      setPoiData(savedResults.poiData)
+      setJobStatus(savedResults.jobStatus)
+      setJobId(savedResults.jobId)
     } else {
-      // Enable marker mode - switch to marker mode, marker is set by user click
-      // Keep existing track and marker data for quick mode switching
-      setPoiData([]) // Clear POIs from previous run
+      // No saved results for this mode, clear everything
+      setPoiData([]) // Clear POIs from previous mode
       setJobStatus(null) // Reset job status
       setJobId(null) // Clear job ID
-      setInputMode('marker')
-      setError(null)
-      
-      // On mobile, close settings panel so user can see the map and marker
-      if (window.innerWidth < 992) {
-        setSheetOpen(false)
-        setNotification('Please place the marker at the desired position and open the settings again.')
-        // Auto-dismiss notification after 5 seconds
-        const timer = setTimeout(() => setNotification(null), 5000)
-        return () => clearTimeout(timer)
-      }
+    }
+    
+    setInputMode(newMode)
+    setError(null)
+    
+    const hasMarkerResults = savedResults?.jobStatus?.state === 'completed'
+
+    // On mobile switching to marker mode, guide the user only if no marker results exist
+    if (newMode === 'marker' && window.innerWidth < 992 && !hasMarkerResults) {
+      setSheetOpen(false)
+      setNotification('Please place the marker at the desired position and open the settings again.')
+      // Auto-dismiss notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000)
     }
   }
 
   const handleStart = async () => {
+    // Check if we have existing completed results
+    if (jobStatus?.state === 'completed' && poiData.length > 0) {
+      setConfirmSearchModalOpen(true)
+      return
+    }
+    
+    // Proceed with search
+    await startProcessing()
+  }
+
+  const startProcessing = async () => {
     // Validate input based on mode
     if (inputMode === 'track') {
       if (!uploadedFile) {
@@ -476,7 +610,27 @@ function DevApp() {
     }
   }
 
+  const handleConfirmSearch = async () => {
+    setConfirmSearchModalOpen(false)
+    await startProcessing()
+  }
+
+  const handleCancelSearch = () => {
+    setConfirmSearchModalOpen(false)
+  }
+
   const handleReset = () => {
+    // Check if we have existing completed results
+    if (jobStatus?.state === 'completed' && poiData.length > 0) {
+      setConfirmResetModalOpen(true)
+      return
+    }
+    
+    // Proceed with reset
+    performReset()
+  }
+
+  const performReset = () => {
     // Clear localStorage persistence
     clearPersistedSettings()
     
@@ -486,9 +640,9 @@ function DevApp() {
     setPoiData([])
     setUploadedFile(null)
     setMarkerPosition(null)
-    setInputMode('track')
     setError(null)
     setSheetOpen(true)
+    setLastProcessedSettings(null) // Clear snapshot on reset
     setSettings({
       projectName: config?.defaults.project_name || '',
       radiusKm: config?.defaults.radius_km || 5,
@@ -496,6 +650,15 @@ function DevApp() {
       excludes: config?.defaults.exclude || [],
       presets: [],
     })
+  }
+
+  const handleConfirmReset = () => {
+    setConfirmResetModalOpen(false)
+    performReset()
+  }
+
+  const handleCancelReset = () => {
+    setConfirmResetModalOpen(false)
   }
 
   const openPresetModal = () => setPresetModalOpen(true)
@@ -521,6 +684,7 @@ function DevApp() {
     const excludesFromPresets = selectedPresets.flatMap(
       (p: string) => presetsDetail[p]?.exclude || [],
     )
+    setLastProcessedSettings(null) // Clear snapshot when presets change
     setSettings((prev: Settings) => ({
       ...prev,
       presets: selectedPresets,
@@ -626,6 +790,31 @@ function DevApp() {
     }
   }
 
+  // Check if search is currently running
+  const isSearchRunning = useMemo(() => {
+    return jobStatus?.state === 'queued' || jobStatus?.state === 'processing'
+  }, [jobStatus])
+
+  // Check if current settings match the last processed settings
+  const settingsUnchanged = useMemo(() => {
+    if (!lastProcessedSettings || !jobStatus || jobStatus.state !== 'completed') {
+      return false
+    }
+    
+    // Compare all relevant settings (use copies for sorting to avoid mutation)
+    return (
+      lastProcessedSettings.projectName === settings.projectName &&
+      lastProcessedSettings.radiusKm === settings.radiusKm &&
+      lastProcessedSettings.inputMode === inputMode &&
+      JSON.stringify([...lastProcessedSettings.includes].sort()) === JSON.stringify([...settings.includes].sort()) &&
+      JSON.stringify([...lastProcessedSettings.excludes].sort()) === JSON.stringify([...settings.excludes].sort()) &&
+      JSON.stringify([...lastProcessedSettings.presets].sort()) === JSON.stringify([...settings.presets].sort()) &&
+      lastProcessedSettings.fileName === uploadedFile?.name &&
+      lastProcessedSettings.markerLat === markerPosition?.[0] &&
+      lastProcessedSettings.markerLon === markerPosition?.[1]
+    )
+  }, [lastProcessedSettings, settings, inputMode, uploadedFile, markerPosition, jobStatus])
+
   return (
     <div className={`dev-app ${sheetOpen ? 'sheet-open' : 'sheet-closed'}`}>
       <SeoMeta
@@ -640,13 +829,13 @@ function DevApp() {
           top: '65%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'white',
-          color: '#1f2937',
+          background: 'var(--wa-card-bg)',
+          color: 'var(--color-text)',
           padding: '0',
           borderRadius: '8px',
           fontSize: '14px',
           zIndex: 170,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          boxShadow: 'var(--wa-card-shadow)',
           maxWidth: '90vw',
           textAlign: 'center',
         }}>
@@ -688,6 +877,8 @@ function DevApp() {
         onDeleteExcludeFilter={deleteExcludeFilterFromChip}
         shouldPulseFab={pulseFab}
         onFabClick={() => setPulseFab(false)}
+        isSearchDisabled={settingsUnchanged}
+        isSearchRunning={isSearchRunning}
       />
 
       <PresetSelectionModal
@@ -719,6 +910,46 @@ function DevApp() {
           closeFilterModal()
         }}
       />
+
+      <Modal
+        open={confirmSearchModalOpen}
+        title="Clear Previous Results?"
+        onClose={handleCancelSearch}
+        footer={
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary btn-compact" onClick={handleCancelSearch}>
+              Cancel
+            </button>
+            <button className="btn btn-primary btn-compact" onClick={handleConfirmSearch}>
+              OK
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
+          Starting a new search will clear all previous results. Do you want to continue?
+        </p>
+      </Modal>
+
+      <Modal
+        open={confirmResetModalOpen}
+        title="Reset All Data?"
+        onClose={handleCancelReset}
+        footer={
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary btn-compact" onClick={handleCancelReset}>
+              Cancel
+            </button>
+            <button className="btn btn-primary btn-compact" onClick={handleConfirmReset}>
+              OK
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
+          This will clear all data including saved results, settings, and uploads. Do you want to continue?
+        </p>
+      </Modal>
     </div>
   )
 }

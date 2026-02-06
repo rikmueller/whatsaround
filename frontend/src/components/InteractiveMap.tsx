@@ -717,7 +717,7 @@ export default function InteractiveMap({ track, pois, markerPosition, onMarkerCh
                 {markerPosition[0].toFixed(5)}°N, {markerPosition[1].toFixed(5)}°E
                 {isMarkerLocked && (
                   <div style={{ marginTop: '8px', fontSize: '0.9em', fontStyle: 'italic', opacity: 0.7 }}>
-                    Hit reset to move marker (all results will be cleared).
+                    Delete coordinates in the settings for moving the marker.
                   </div>
                 )}
               </div>

@@ -31,7 +31,7 @@ Build your own using OpenStreetMap tags (e.g., `amenity=restaurant`, `shop=bicyc
 ### 1.3 Generate Results
 
 - Set your search radius (1-50 km from track)
-- Click **Process**
+- Click **Search**
 
 ### 1.4 Explore Results
 
