@@ -214,6 +214,18 @@ function clearPersistedSettings() {
   }
 }
 
+function injectSelineScript(token: string) {
+  if (typeof document === 'undefined') return
+  const existing = document.querySelector('script[data-seline="true"]')
+  if (existing) return
+  const script = document.createElement('script')
+  script.async = true
+  script.src = 'https://cdn.seline.com/seline.js'
+  script.setAttribute('data-token', token)
+  script.setAttribute('data-seline', 'true')
+  document.head.appendChild(script)
+}
+
 /**
  * Parse GPX file using browser's DOMParser to extract track coordinates
  */
@@ -282,6 +294,7 @@ type Settings = {
 
 function DevApp() {
   const [config, setConfig] = useState<ConfigResponse | null>(null)
+  const selineInitialized = useRef(false)
   
   // Initialize input mode first (needed for loading correct results)
   const [inputMode, setInputMode] = useState<'track' | 'marker'>(() => {
@@ -444,6 +457,15 @@ function DevApp() {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (!config?.seline?.enabled) return
+    if (selineInitialized.current) return
+    const token = config.seline.token
+    if (!token) return
+    injectSelineScript(token)
+    selineInitialized.current = true
+  }, [config])
 
   // Persist tile preference
   useEffect(() => {

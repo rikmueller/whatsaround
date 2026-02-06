@@ -96,6 +96,14 @@ def _get_float(key: str, default: float | None = None) -> float | None:
         return default
 
 
+def _get_bool(key: str, default: bool = False) -> bool:
+    """Get boolean from environment variable."""
+    value = os.getenv(key)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 def load_config_from_env() -> dict:
     """
     Load configuration from environment variables only.
@@ -146,6 +154,10 @@ def load_config_from_env() -> dict:
             'temp_file_max_age_seconds': _get_int('WA_TEMP_FILE_MAX_AGE_SECONDS', 3600),
             'output_retention_days': _get_int('WA_OUTPUT_RETENTION_DAYS', 10),
         },
+        'seline': {
+            'enabled': _get_bool('WA_SELINE_ENABLED', False),
+            'token': os.getenv('WA_SELINE_TOKEN', ''),
+        },
         'presets_file': os.getenv('WA_PRESETS_FILE', 'data/presets.yaml'),
     }
     
@@ -180,6 +192,11 @@ logger.info(f"  Output path: {APP_CONFIG['project']['output_path']}")
 logger.info(f"  Presets file: {APP_CONFIG['presets_file']}")
 logger.info(f"  Radius: {APP_CONFIG['search']['radius_km']}km, Step: {APP_CONFIG['search']['step_km']}km")
 logger.info(f"  Cleanup: jobs={JOB_TTL_SECONDS}s, temp={TEMP_FILE_MAX_AGE_SECONDS}s, output={OUTPUT_RETENTION_DAYS}d")
+logger.info(
+    "  Seline: enabled=%s, token_set=%s",
+    APP_CONFIG.get('seline', {}).get('enabled', False),
+    bool(APP_CONFIG.get('seline', {}).get('token')),
+)
 
 UUID_GPX_RE = re.compile(r'^[0-9a-fA-F-]{36}\.gpx$')
 UUID_OUTPUT_RE = re.compile(r'^[0-9a-fA-F-]{36}\.(xlsx|html)$')
@@ -434,6 +451,10 @@ def get_config():
             'marker_color_palette': APP_CONFIG['map'].get('marker_color_palette', []),
             'default_marker_color': APP_CONFIG['map'].get('default_marker_color', 'gray'),
             'track_color': APP_CONFIG['map'].get('track_color', 'blue'),
+            'seline': {
+                'enabled': bool(APP_CONFIG.get('seline', {}).get('enabled')),
+                'token': APP_CONFIG.get('seline', {}).get('token') if APP_CONFIG.get('seline', {}).get('enabled') else None,
+            },
         }), 200
     except Exception as e:
         logger.error(f"Config fetch failed: {e}")

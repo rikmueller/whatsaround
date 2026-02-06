@@ -10,6 +10,10 @@ export interface ConfigResponse {
     include: string[]
     exclude: string[]
   }
+  seline?: {
+    enabled: boolean
+    token?: string | null
+  }
   presets: string[]
   presets_detail: {
     [key: string]: {
