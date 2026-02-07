@@ -5,6 +5,34 @@ from string import Template
 from folium.plugins import LocateControl
 
 
+def add_cdn_integrity(html_path: str) -> None:
+    try:
+        with open(html_path, "r", encoding="utf-8") as handle:
+            html = handle.read()
+    except OSError:
+        return
+
+    jquery_src = "https://code.jquery.com/jquery-3.7.1.min.js"
+    jquery_tag = f'<script src="{jquery_src}"></script>'
+    jquery_sri = "sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+    jquery_tag_with_sri = (
+        f'<script src="{jquery_src}" integrity="{jquery_sri}" crossorigin="anonymous"></script>'
+    )
+
+    if jquery_tag not in html:
+        return
+
+    updated_html = html.replace(jquery_tag, jquery_tag_with_sri)
+    if updated_html == html:
+        return
+
+    try:
+        with open(html_path, "w", encoding="utf-8") as handle:
+            handle.write(updated_html)
+    except OSError:
+        return
+
+
 def build_folium_map(
     df,
     track_points,
@@ -274,4 +302,5 @@ def build_folium_map(
     m.get_root().html.add_child(folium.Element(scale_script.substitute(map_name=m.get_name())))
 
     m.save(html_path)
+    add_cdn_integrity(html_path)
     return html_path

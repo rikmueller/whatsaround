@@ -197,6 +197,10 @@ async function parseGPXFile(file: File): Promise<[number, number][]> {
   const text = await file.text()
   const parser = new DOMParser()
   const xmlDoc = parser.parseFromString(text, 'text/xml')
+  const root = xmlDoc.documentElement
+  if (!root || root.nodeName.toLowerCase() !== 'gpx') {
+    throw new Error('Invalid GPX file - missing <gpx> root element')
+  }
   
   // Check for XML parsing errors
   const parserError = xmlDoc.querySelector('parsererror')
