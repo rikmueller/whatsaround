@@ -5,6 +5,54 @@ from string import Template
 from folium.plugins import LocateControl
 
 
+def add_cdn_integrity(html_path: str) -> None:
+    try:
+        with open(html_path, "r", encoding="utf-8") as handle:
+            html = handle.read()
+    except OSError:
+        return
+    jquery_src = "https://code.jquery.com/jquery-3.7.1.min.js"
+    jquery_tag = f'<script src="{jquery_src}"></script>'
+    jquery_sri = "sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+    jquery_tag_with_sri = (
+        f'<script src="{jquery_src}" integrity="{jquery_sri}" crossorigin="anonymous"></script>'
+    )
+
+    if jquery_tag not in html:
+        return
+
+    updated_html = html.replace(jquery_tag, jquery_tag_with_sri)
+    if updated_html == html:
+        return
+
+    try:
+        with open(html_path, "w", encoding="utf-8") as handle:
+            handle.write(updated_html)
+    except OSError:
+        return
+
+
+def build_svg_icon(color: str, kind: str = "poi") -> folium.DivIcon:
+    if kind == "start":
+        circle_fill = "#16a34a"
+        inner = '<polygon points="12,8 22,14 12,20" fill="#ffffff" />'
+    elif kind == "end":
+        circle_fill = "#dc2626"
+        inner = '<rect x="11" y="9" width="10" height="10" fill="#ffffff" />'
+    else:
+        circle_fill = "#ffffff"
+        inner = '<text x="16" y="17" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#111827">i</text>'
+
+    svg = f"""
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="44" viewBox="0 0 32 44">
+        <path d="M16 1C8.82 1 3 6.82 3 14c0 9.24 11.34 27.2 12.03 28.3a1.16 1.16 0 0 0 1.94 0C17.66 41.2 29 23.24 29 14 29 6.82 23.18 1 16 1z" fill="{color}" stroke="#1f2933" stroke-width="2" />
+        <circle cx="16" cy="14" r="6" fill="{circle_fill}" />
+        {inner}
+    </svg>
+    """.strip()
+    return folium.DivIcon(html=svg, icon_size=(32, 44), icon_anchor=(16, 42), class_name="wa-svg-marker")
+
+
 def build_folium_map(
     df,
     track_points,
@@ -62,6 +110,17 @@ def build_folium_map(
         location=[start_lat, start_lon],
         tiles=None,  # We add explicit tile layers below so the user can switch
     )
+
+    marker_style = """
+    <style>
+        .leaflet-div-icon.wa-svg-marker,
+        .wa-svg-marker {
+            background: transparent;
+            border: none;
+        }
+    </style>
+    """
+    m.get_root().html.add_child(folium.Element(marker_style))
 
     for idx, layer in enumerate(tile_layers):
         folium.TileLayer(
@@ -187,7 +246,7 @@ def build_folium_map(
         folium.Marker(
             location=[start_lat, start_lon],
             popup=folium.Popup("<b>Start</b>", max_width=150),
-            icon=folium.Icon(color="green", icon="play", prefix="glyphicon"),
+            icon=build_svg_icon("#16a34a", "start"),
         ).add_to(track_group)
 
     # Add end marker
@@ -196,7 +255,7 @@ def build_folium_map(
         folium.Marker(
             location=[end_lat, end_lon],
             popup=folium.Popup("<b>End</b>", max_width=150),
-            icon=folium.Icon(color="red", icon="stop", prefix="glyphicon"),
+            icon=build_svg_icon("#dc2626", "end"),
         ).add_to(track_group)
 
     # Collect bounds from track and POIs for initial auto-fit
@@ -234,7 +293,7 @@ def build_folium_map(
         folium.Marker(
             location=[row["lat"], row["lon"]],
             popup=folium.Popup(popup_html, max_width=300),
-            icon=folium.Icon(color=color, icon="info-sign"),
+            icon=build_svg_icon(color, "poi"),
         ).add_to(poi_group)
 
     if bounds:
@@ -274,4 +333,5 @@ def build_folium_map(
     m.get_root().html.add_child(folium.Element(scale_script.substitute(map_name=m.get_name())))
 
     m.save(html_path)
+    add_cdn_integrity(html_path)
     return html_path
